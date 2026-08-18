@@ -11,52 +11,33 @@ import time
 from datetime import datetime
 
 # ================= 1. PAGE CONFIGURATION =================
-st.set_page_config(page_title="All Sector Stocks Auto-Scanner & Alert", layout="wide")
+st.set_page_config(page_title="Only Signal Triggered Stocks Screener", layout="wide")
 
-# ================= 2. ALL SECTORS & THEIR STOCKS MAPPING =================
-SECTOR_STOCKS = {
-    "NIFTY BANK": [
-        "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", 
-        "AXISBANK.NS", "INDUSINDBK.NS", "BANKBARODA.NS", "PNB.NS", "AUBANK.NS", "FEDERALBNK.NS"
-    ],
-    "NIFTY IT": [
-        "TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "LTIM.NS", 
-        "TECHM.NS", "PERSISTENT.NS", "COFORGE.NS", "MPHASIS.NS", "LTTS.NS"
-    ],
-    "NIFTY AUTO": [
-        "TATAMOTORS.NS", "M&M.NS", "MARUTI.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", 
-        "EICHERMOT.NS", "TVSMOTOR.NS", "BHARATFORG.NS", "ASHOKLEY.NS", "BALKRISIND.NS"
-    ],
-    "NIFTY PHARMA": [
-        "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "LUPIN.NS", 
-        "AUROPHARMA.NS", "TORNTPHARM.NS", "ALKEM.NS", "ZYDUSLIFE.NS", "BIOCON.NS"
-    ],
-    "NIFTY FMCG": [
-        "ITC.NS", "HINDUNILVR.NS", "NESTLEIND.NS", "BRITANNIA.NS", "TATACONSUM.NS", 
-        "DABUR.NS", "GODREJCP.NS", "MARICO.NS", "COLPAL.NS", "VBL.NS"
-    ],
-    "NIFTY METAL": [
-        "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "JINDALSTEL.NS", "VEDL.NS", 
-        "COALINDIA.NS", "NMDC.NS", "SAIL.NS", "NATIONALUM.NS", "APLAPOLLO.NS"
-    ],
-    "NIFTY ENERGY & OIL/GAS": [
-        "RELIANCE.NS", "ONGC.NS", "NTPC.NS", "POWERGRID.NS", "BPCL.NS", 
-        "IOC.NS", "GAIL.NS", "ADANIENT.NS", "ADANIPORTS.NS", "ADANIGREEN.NS"
-    ],
-    "NIFTY REALTY & INFRA": [
-        "DLF.NS", "GODREJPROP.NS", "LODHA.NS", "OBEROIRLTY.NS", "PHOENIXLTD.NS", 
-        "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "AMBUJACEM.NS", "SHREECEM.NS"
-    ]
-}
-
-# Flatten list of all unique stocks
-ALL_STOCKS_FLAT = sorted(list(set([stock for stocks in SECTOR_STOCKS.values() for stock in stocks])))
+# ================= 2. ALL SECTOR STOCKS LIST =================
+ALL_STOCKS_FLAT = [
+    # Banking & Finance
+    "HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS", 
+    "INDUSINDBK.NS", "BANKBARODA.NS", "PNB.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS",
+    # IT
+    "TCS.NS", "INFY.NS", "HCLTECH.NS", "WIPRO.NS", "LTIM.NS", "TECHM.NS", "PERSISTENT.NS", "COFORGE.NS",
+    # Auto
+    "TATAMOTORS.NS", "M&M.NS", "MARUTI.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS", "EICHERMOT.NS", "TVSMOTOR.NS",
+    # Pharma & Healthcare
+    "SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "LUPIN.NS", "APOLLOHOSP.NS",
+    # FMCG & Consumer
+    "ITC.NS", "HINDUNILVR.NS", "NESTLEIND.NS", "BRITANNIA.NS", "TATACONSUM.NS", "VBL.NS", "TITAN.NS",
+    # Metal & Mining
+    "TATASTEEL.NS", "JSWSTEEL.NS", "HINDALCO.NS", "JINDALSTEL.NS", "VEDL.NS", "COALINDIA.NS",
+    # Energy, Oil & Gas
+    "RELIANCE.NS", "ONGC.NS", "NTPC.NS", "POWERGRID.NS", "BPCL.NS", "IOC.NS", "ADANIENT.NS", "ADANIPORTS.NS",
+    # Infra & Realty
+    "LT.NS", "ULTRACEMCO.NS", "GRASIM.NS", "DLF.NS", "GODREJPROP.NS"
+]
 
 # ================= 3. SMS FUNCTION =================
 def send_sms_alert(phone_number, message, api_key):
     if not api_key:
         return {"return": False, "message": "Missing API Key"}
-    
     url = "https://www.fast2sms.com/dev/bulkV2"
     payload = {
         "authorization": api_key,
@@ -72,220 +53,196 @@ def send_sms_alert(phone_number, message, api_key):
     except Exception as e:
         return {"return": False, "message": str(e)}
 
-# ================= 4. TECHNICAL INDICATORS CALCULATION =================
-def calculate_indicators(df):
+# ================= 4. SIGNAL CHECKER FUNCTION =================
+def scan_stock_for_signals(df):
+    """
+    फक्त सिग्नल तयार झाला असेल तरच माहिती रिटर्न करतो.
+    नाहीतर None रिटर्न करतो.
+    """
+    if df.empty or len(df) < 30:
+        return None
+
+    # Indicators
     df['EMA_9'] = ta.trend.ema_indicator(df['Close'], window=9)
     df['EMA_21'] = ta.trend.ema_indicator(df['Close'], window=21)
-    df['EMA_50'] = ta.trend.ema_indicator(df['Close'], window=50)
     df['EMA_200'] = ta.trend.ema_indicator(df['Close'], window=200)
     df['RSI'] = ta.momentum.rsi(df['Close'], window=14)
     
     macd = ta.trend.MACD(df['Close'])
     df['MACD'] = macd.macd()
     df['MACD_Signal'] = macd.macd_signal()
-    df['MACD_Hist'] = macd.macd_diff()
-    
+
     bb = ta.volatility.BollingerBands(df['Close'], window=20, window_dev=2)
     df['BB_High'] = bb.bollinger_hband()
     df['BB_Low'] = bb.bollinger_lband()
-    
-    df['Resistance'] = df['High'].rolling(window=20).max()
-    df['Support'] = df['Low'].rolling(window=20).min()
-    return df
 
-# ================= 5. AUTO BACKGROUND SCANNER ENGINE =================
+    # Values for Last 2 Candles
+    p_close = float(df['Close'].iloc[-2])
+    c_close = float(df['Close'].iloc[-1])
+    
+    p_e9, p_e21 = float(df['EMA_9'].iloc[-2]), float(df['EMA_21'].iloc[-2])
+    c_e9, c_e21 = float(df['EMA_9'].iloc[-1]), float(df['EMA_21'].iloc[-1])
+    
+    p_macd, p_msig = float(df['MACD'].iloc[-2]), float(df['MACD_Signal'].iloc[-2])
+    c_macd, c_msig = float(df['MACD'].iloc[-1]), float(df['MACD_Signal'].iloc[-1])
+    
+    curr_rsi = float(df['RSI'].iloc[-1])
+    bb_high = float(df['BB_High'].iloc[-1])
+    bb_low = float(df['BB_Low'].iloc[-1])
+
+    signals = []
+
+    # 1. EMA Crossover
+    if (p_e9 <= p_e21) and (c_e9 > c_e21):
+        signals.append("🟢 9/21 EMA Golden Cross (Buy)")
+    elif (p_e9 >= p_e21) and (c_e9 < c_e21):
+        signals.append("🔴 9/21 EMA Death Cross (Sell)")
+
+    # 2. MACD Crossover
+    if (p_macd <= p_msig) and (c_macd > c_msig):
+        signals.append("🟢 MACD Bullish Cross")
+    elif (p_macd >= p_msig) and (c_macd < c_msig):
+        signals.append("🔴 MACD Bearish Cross")
+
+    # 3. RSI Extrems
+    if curr_rsi <= 30:
+        signals.append(f"📉 RSI Oversold ({curr_rsi:.1f})")
+    elif curr_rsi >= 70:
+        signals.append(f"📈 RSI Overbought ({curr_rsi:.1f})")
+
+    # 4. Bollinger Breakout
+    if c_close > bb_high:
+        signals.append("🚀 Upper BB Breakout")
+    elif c_close < bb_low:
+        signals.append("🔻 Lower BB Breakdown")
+
+    # जर किमान १ सिग्नल असेल तरच डेटा पाठवा
+    if signals:
+        chg_pct = ((c_close - p_close) / p_close) * 100
+        return {
+            "Close": c_close,
+            "Change_Pct": chg_pct,
+            "RSI": curr_rsi,
+            "Signals": " | ".join(signals),
+            "Raw_Signals": signals
+        }
+    return None
+
+# ================= 5. BACKGROUND AUTO SCANNER ENGINE =================
 if "auto_scan_active" not in st.session_state:
     st.session_state.auto_scan_active = False
 if "sent_alerts" not in st.session_state:
     st.session_state.sent_alerts = set()
-if "scan_logs" not in st.session_state:
-    st.session_state.scan_logs = []
+if "detected_signals_table" not in st.session_state:
+    st.session_state.detected_signals_table = []
 
-def run_background_scanner(api_key, phone_no):
+def run_auto_scanner(api_key, phone_no):
     while st.session_state.auto_scan_active:
-        now_str = datetime.now().strftime("%H:%M:%S")
+        now_time = datetime.now().strftime("%H:%M:%S")
         for sym in ALL_STOCKS_FLAT:
             if not st.session_state.auto_scan_active:
                 break
             try:
                 df = yf.download(sym, period="5d", interval="15m", progress=False)
-                if df.empty or len(df) < 30:
-                    continue
                 if isinstance(df.columns, pd.MultiIndex):
                     df.columns = [col[0] for col in df.columns]
 
-                df = calculate_indicators(df)
-
-                p_e9, p_e21 = float(df['EMA_9'].iloc[-2]), float(df['EMA_21'].iloc[-2])
-                c_e9, c_e21 = float(df['EMA_9'].iloc[-1]), float(df['EMA_21'].iloc[-1])
-                p_macd, p_msig = float(df['MACD'].iloc[-2]), float(df['MACD_Signal'].iloc[-2])
-                c_macd, c_msig = float(df['MACD'].iloc[-1]), float(df['MACD_Signal'].iloc[-1])
-                curr_rsi = float(df['RSI'].iloc[-1])
-                cmp_val = float(df['Close'].iloc[-1])
-
-                triggers = []
-                if (p_e9 <= p_e21) and (c_e9 > c_e21):
-                    triggers.append("Bullish 9/21 EMA Cross")
-                elif (p_e9 >= p_e21) and (c_e9 < c_e21):
-                    triggers.append("Bearish 9/21 EMA Cross")
-
-                if (p_macd <= p_msig) and (c_macd > c_msig):
-                    triggers.append("MACD Buy Cross")
-
-                if curr_rsi <= 30:
-                    triggers.append(f"RSI Oversold ({curr_rsi:.1f})")
-                elif curr_rsi >= 75:
-                    triggers.append(f"RSI Overbought ({curr_rsi:.1f})")
-
-                if triggers:
+                res = scan_stock_for_signals(df)
+                
+                # जर सिग्नल मिळाला तरच:
+                if res:
                     today = datetime.now().strftime("%Y-%m-%d")
-                    alert_key = f"{sym}{today}{triggers[0]}"
+                    alert_key = f"{sym}{today}{res['Raw_Signals'][0]}"
+
                     if alert_key not in st.session_state.sent_alerts:
-                        sms_msg = f"STOCK ALERT:\n{sym}\nPrice: ₹{cmp_val:.2f}\nRSI: {curr_rsi:.1f}\nTrigger: {', '.join(triggers)}"
-                        res = send_sms_alert(phone_no, sms_msg, api_key)
-                        if res.get("return"):
+                        # Auto SMS
+                        sms_text = f"SIGNAL ALERT:\nStock: {sym}\nPrice: ₹{res['Close']:.2f}\nRSI: {res['RSI']:.1f}\nTrigger: {res['Signals']}"
+                        sms_status = send_sms_alert(phone_no, sms_text, api_key)
+                        
+                        if sms_status.get("return"):
                             st.session_state.sent_alerts.add(alert_key)
-                            st.session_state.scan_logs.insert(0, f"[{now_str}] ✅ SMS Sent: {sym} -> {', '.join(triggers)}")
+
+                        # UI साठी टेबलमध्ये ॲड करा
+                        st.session_state.detected_signals_table.insert(0, {
+                            "वेळ (Time)": now_time,
+                            "स्टॉक (Stock)": sym,
+                            "किंमत (CMP)": f"₹{res['Close']:.2f}",
+                            "बदल (%)": f"{res['Change_Pct']:+.2f}%",
+                            "RSI": f"{res['RSI']:.1f}",
+                            "सिग्नल (Triggers)": res['Signals']
+                        })
             except Exception:
                 continue
 
-        # Wait 5 minutes between full scans
-        time.sleep(300)
+        time.sleep(300) # 5 मिनिटांचा गॅप
 
 # ================= 6. SIDEBAR CONTROLS =================
-st.sidebar.header("📊 स्टॉक निवड व ऑटो स्कॅनर")
+st.sidebar.header("🎯 सिग्नल-ओन्ली स्कॅनर (Controls)")
 
-selected_sector = st.sidebar.selectbox("सेक्टर निवडा (Select Sector):", list(SECTOR_STOCKS.keys()))
-available_stocks = SECTOR_STOCKS[selected_sector]
-selected_stock = st.sidebar.selectbox("स्टॉक निवडा (Select Stock):", available_stocks)
-
-custom_ticker = st.sidebar.text_input("किंवा कस्टम स्टॉक टाका (उदा. TATAPOWER.NS):", value="")
-active_ticker = custom_ticker.strip().upper() if custom_ticker else selected_stock
-
-timeframe = st.sidebar.selectbox("टाइमफ्रेम (Timeframe)", ["5m", "15m", "1h", "1d", "1wk"], index=3)
-period = st.sidebar.selectbox("कालावधी (Period)", ["1mo", "3mo", "6mo", "1y", "2y"], index=2)
-
+timeframe = st.sidebar.selectbox("टाइमफ्रेम निवडा:", ["15m", "5m", "1h", "1d"], index=0)
 st.sidebar.markdown("---")
-st.sidebar.subheader("📱 ऑटो SMS अलर्ट सेटिंग")
+st.sidebar.subheader("📱 ऑटो SMS सेटिंग्ज")
 phone_no = st.sidebar.text_input("मोबाईल नंबर", value="8459958007")
 api_key = st.sidebar.text_input("Fast2SMS API Key", type="password")
 
-if st.sidebar.button("🚀 सर्व शेअर्स ऑटो स्कॅन सुरू करा"):
+if st.sidebar.button("🚀 ऑटो स्कॅनर सुरू करा (Start Auto Engine)"):
     if api_key:
         if not st.session_state.auto_scan_active:
             st.session_state.auto_scan_active = True
-            threading.Thread(target=run_background_scanner, args=(api_key, phone_no), daemon=True).start()
-            st.sidebar.success("सर्व सेक्टर शेअर्सचा ऑटो-स्कॅनर सुरू झाला!")
+            threading.Thread(target=run_auto_scanner, args=(api_key, phone_no), daemon=True).start()
+            st.sidebar.success("ऑटो स्कॅनर बॅकग्राउंडमध्ये सुरू झाले!")
     else:
         st.sidebar.error("कृपया Fast2SMS API Key टाका.")
 
-if st.sidebar.button("⏹️ ऑटो स्कॅनर बंद करा"):
+if st.sidebar.button("⏹️ ऑटो स्कॅनर थांबवा"):
     st.session_state.auto_scan_active = False
     st.sidebar.warning("ऑटो स्कॅनर थांबवले आहे.")
 
-# ================= 7. APPLICATION TABS =================
-tab1, tab2, tab3 = st.tabs(["📈 तांत्रिक चार्ट & सिग्नल्स", "⚡ सेक्टर शेअर्स लाइव्ह स्कॅनर", "📜 ऑटो SMS लॉग्ज"])
+# ================= 7. MAIN UI DASHBOARD =================
+st.title("⚡ केवळ सिग्नल मिळालेले शेअर्स (Signal-Only Screener)")
+st.caption("येथे फक्त तेच शेअर्स दिसतील ज्यामध्ये *9/21 EMA Cross, MACD Buy/Sell, किंवा Bollinger Breakout* तयार झाला आहे.")
 
-# ----------------- TAB 1: CHART -----------------
-with tab1:
-    st.subheader(f"📊 {active_ticker} - सविस्तर तांत्रिक चार्ट")
-    data = yf.download(active_ticker, period=period, interval=timeframe)
+col_btn1, col_btn2 = st.columns([2, 8])
+with col_btn1:
+    scan_now = st.button("🔍 आता त्वरित स्कॅन करा (Instant Scan)")
 
-    if not data.empty:
-        if isinstance(data.columns, pd.MultiIndex):
-            data.columns = [col[0] for col in data.columns]
+if scan_now:
+    with st.spinner("सर्व शेअर्स स्कॅन करून फक्त सिग्नल असलेले शेअर्स शोधत आहे..."):
+        manual_results = []
+        for sym in ALL_STOCKS_FLAT:
+            try:
+                df = yf.download(sym, period="5d", interval=timeframe, progress=False)
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = [col[0] for col in df.columns]
 
-        data = calculate_indicators(data)
+                res = scan_stock_for_signals(df)
+                if res:
+                    manual_results.append({
+                        "स्टॉक (Stock)": sym,
+                        "किंमत (CMP)": f"₹{res['Close']:.2f}",
+                        "बदल (%)": f"{res['Change_Pct']:+.2f}%",
+                        "RSI (14)": f"{res['RSI']:.1f}",
+                        "मिळालेला सिग्नल (Triggered Signals)": res['Signals']
+                    })
+            except Exception:
+                continue
 
-        c_price = float(data['Close'].iloc[-1])
-        p_price = float(data['Close'].iloc[-2])
-        chg_pct = ((c_price - p_price) / p_price) * 100
+        if manual_results:
+            st.success(f"🎯 एकूण {len(manual_results)} शेअर्समध्ये तांत्रिक सिग्नल मिळाले आहेत!")
+            st.dataframe(pd.DataFrame(manual_results), use_container_width=True)
+        else:
+            st.info("सध्या कोणत्याही शेअरमध्ये नवीन सिग्नल मिळालेला नाही (मार्केट रेंजबाऊंड आहे).")
 
-        c1, c2, c3, c4, c5 = st.columns(5)
-        c1.metric("किंमत (CMP)", f"₹{c_price:.2f}", f"{chg_pct:+.2f}%")
-        c2.metric("RSI (14)", f"{data['RSI'].iloc[-1]:.1f}")
-        c3.metric("MACD", f"{data['MACD'].iloc[-1]:.2f}")
-        c4.metric("9 EMA", f"{data['EMA_9'].iloc[-1]:.2f}")
-        c5.metric("21 EMA", f"{data['EMA_21'].iloc[-1]:.2f}")
+# ऑटो स्कॅनरद्वारे सापडलेले रिअल-टाइम शेअर्स
+st.markdown("---")
+st.subheader("📡 ऑटो-स्कॅनरद्वारे सापडलेले शेअर्स (Live Auto-Triggered)")
 
-        fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.6, 0.2, 0.2])
+if st.session_state.auto_scan_active:
+    st.success("🟢 ऑटो-स्कॅनर सक्रिय आहे (नवीन सिग्नल मिळताच SMS पाठवला जाईल आणि खाली यादीत ॲड होईल).")
+else:
+    st.warning("⚪ ऑटो-स्कॅनर बंद आहे. डाव्या साइडबारमधून '🚀 ऑटो स्कॅनर सुरू करा' दाबा.")
 
-        # Panel 1: Price & Overlays
-        fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name="Price"), row=1, col=1)
-        fig.add_trace(go.Scatter(x=data.index, y=data['EMA_9'], line=dict(color='#2962FF', width=1.2), name="9 EMA"), row=1, col=1)
-        fig.add_trace(go.Scatter(x=data.index, y=data['EMA_21'], line=dict(color='#FF6D00', width=1.2), name="21 EMA"), row=1, col=1)
-        fig.add_trace(go.Scatter(x=data.index, y=data['EMA_200'], line=dict(color='#D50000', width=1.5), name="200 EMA"), row=1, col=1)
-        fig.add_trace(go.Scatter(x=data.index, y=data['BB_High'], line=dict(color='gray', dash='dash'), name="BB Upper"), row=1, col=1)
-        fig.add_trace(go.Scatter(x=data.index, y=data['BB_Low'], line=dict(color='gray', dash='dash'), fill='tonexty', fillcolor='rgba(200,200,200,0.1)', name="BB Lower"), row=1, col=1)
-
-        # Panel 2: Volume
-        vol_colors = ['green' if c >= o else 'red' for c, o in zip(data['Close'], data['Open'])]
-        fig.add_trace(go.Bar(x=data.index, y=data['Volume'], marker_color=vol_colors, name="Volume"), row=2, col=1)
-
-        # Panel 3: RSI & MACD
-        fig.add_trace(go.Scatter(x=data.index, y=data['RSI'], line=dict(color='purple', width=1.3), name="RSI (14)"), row=3, col=1)
-        fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
-        fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
-
-        fig.update_layout(height=750, template="plotly_white", xaxis_rangeslider_visible=False)
-        st.plotly_chart(fig, use_container_width=True)
-
-        if st.button("📲 थेट 8459958007 वर SMS पाठवा"):
-            if api_key:
-                res = send_sms_alert(phone_no, f"Test: {active_ticker} CMP: ₹{c_price:.2f} RSI: {data['RSI'].iloc[-1]:.1f}", api_key)
-                if res.get("return"):
-                    st.success("SMS यशस्वीरीत्या पाठवला गेला!")
-                else:
-                    st.error(f"SMS अयशस्वी: {res.get('message')}")
-            else:
-                st.error("कृपया API Key टाका.")
-    else:
-        st.error("डेटा लोड करता आला नाही.")
-
-# ----------------- TAB 2: SECTOR STOCKS SCANNER -----------------
-with tab2:
-    st.subheader(f"⚡ {selected_sector} मधील सर्व शेअर्सची लाईव्ह स्थिती")
-    if st.button(f"{selected_sector} चे सर्व शेअर्स स्कॅन करा"):
-        with st.spinner("डेटा लोड होत आहे..."):
-            stock_summary = []
-            for stk in available_stocks:
-                try:
-                    df_stk = yf.download(stk, period="1mo", interval="1d", progress=False)
-                    if not df_stk.empty:
-                        if isinstance(df_stk.columns, pd.MultiIndex):
-                            df_stk.columns = [col[0] for col in df_stk.columns]
-
-                        df_stk = calculate_indicators(df_stk)
-                        cp = float(df_stk['Close'].iloc[-1])
-                        pp = float(df_stk['Close'].iloc[-2])
-                        pct = ((cp - pp) / pp) * 100
-                        rsi_v = float(df_stk['RSI'].iloc[-1])
-                        e9 = float(df_stk['EMA_9'].iloc[-1])
-                        e21 = float(df_stk['EMA_21'].iloc[-1])
-
-                        stock_summary.append({
-                            "स्टॉक (Symbol)": stk,
-                            "CMP (किंमत)": f"₹{cp:.2f}",
-                            "बदल (%)": f"{pct:+.2f}%",
-                            "RSI (14)": f"{rsi_v:.1f}",
-                            "9/21 EMA": "🟢 Bullish" if e9 > e21 else "🔴 Bearish"
-                        })
-                except Exception:
-                    continue
-
-            if stock_summary:
-                st.dataframe(pd.DataFrame(stock_summary), use_container_width=True)
-
-# ----------------- TAB 3: AUTO SMS LOGS -----------------
-with tab3:
-    st.subheader("📜 ऑटो-स्कॅनर रिअल-टाइम SMS लॉग्ज")
-    if st.session_state.auto_scan_active:
-        st.info("🟢 सर्व ८०+ सेक्टर शेअर्सचे ऑटो-स्कॅनिंग बॅकग्राउंडमध्ये चालू आहे...")
-    else:
-        st.warning("⚪ ऑटो-स्कॅनर बंद आहे. डाव्या साइडबारमधून '🚀 सर्व शेअर्स ऑटो स्कॅन सुरू करा' वर क्लिक करा.")
-
-    if st.session_state.scan_logs:
-        for l in st.session_state.scan_logs:
-            st.text(l)
-    else:
-        st.caption("अद्याप कोणताही नवीन सिग्नल आलेला नाही.")
+if st.session_state.detected_signals_table:
+    st.dataframe(pd.DataFrame(st.session_state.detected_signals_table), use_container_width=True)
+else:
+    st.caption("अद्याप ऑटो-स्कॅनमध्ये कोणताही नवीन ट्रिगर सापडलेला नाही.")
