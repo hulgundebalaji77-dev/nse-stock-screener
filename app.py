@@ -87,20 +87,14 @@ ALL_STOCKS = [
 
 
 # ================= 3. SMS FUNCTION (Fast2SMS FIXED) =================
-def send_sms_alert(phone_number, message, api_key):
-    if not api_key:
-        return {"return": False, "message": "Missing API Key"}
-    
-    url = "https://www.fast2sms.com/dev/bulkV2"
-    
-    payload = {
-        "route": "q",
-        "message": message,
-        "language": "english",
-        "flash": 0,
-        "numbers": str(phone_number).strip()
-    }
-    
+def send_telegram_alert(bot_token, chat_id, message):
+  url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+  payload = {"chat_id": chat_id, "text": message}
+  try:
+    res = requests.post(url, json=payload, timeout=10)
+    return res.json()
+  except Exception as e:
+    return {"ok": False, "description": str(e)} 
     headers = {
         "authorization": str(api_key).strip(),
         "Content-Type": "application/json"
