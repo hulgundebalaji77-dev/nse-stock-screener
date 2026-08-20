@@ -88,28 +88,30 @@ ALL_STOCKS = [
 
 # ================= 3. SMS FUNCTION (Fast2SMS FIXED) =================
 def send_sms_alert(phone_number, message, api_key):
-  if not api_key:
-    return {"return": False, "message": "Missing API Key"}
-
-  url = "https://www.fast2sms.com/dev/bulkV2"
-  payload = {
-      "route": "q",
-      "message": message,
-      "language": "english",
-      "flash": 0,
-      "numbers": str(phone_number).strip(),
-  }
-  headers = {
-      "authorization": api_key.strip(),
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Cache-Control": "no-cache",
-  }
-  try:
-    response = requests.post(url, data=payload, headers=headers, timeout=10)
-    return response.json()
-  except Exception as e:
-    return {"return": False, "message": str(e)}
-
+    if not api_key:
+        return {"return": False, "message": "Missing API Key"}
+    
+    url = "https://www.fast2sms.com/dev/bulkV2"
+    
+    payload = {
+        "route": "q",
+        "message": message,
+        "language": "english",
+        "flash": 0,
+        "numbers": str(phone_number).strip()
+    }
+    
+    headers = {
+        "authorization": str(api_key).strip(),
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        # data ऐवजी json=payload वापरणे
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        return response.json()
+    except Exception as e:
+        return {"return": False, "message": str(e)}
 
 # ================= 4. TECHNICAL INDICATORS =================
 def calculate_supertrend(df, period=10, multiplier=3):
