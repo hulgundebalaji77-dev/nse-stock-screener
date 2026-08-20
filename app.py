@@ -11,7 +11,8 @@ import yfinance as yf
 
 # ================= 1. PAGE CONFIGURATION =================
 st.set_page_config(
-    page_title="Custom Indicator Signal Screener & SMS Alert", layout="wide"
+    page_title="Custom Indicator Signal Screener & Telegram Alert",
+    layout="wide",
 )
 
 # ================= 2. ALL SECTOR STOCKS =================
@@ -86,26 +87,22 @@ ALL_STOCKS = [
 ]
 
 
-# ================= 3. SMS FUNCTION (Fast2SMS FIXED) =================
+# ================= 3. TELEGRAM ALERT FUNCTION =================
 def send_telegram_alert(bot_token, chat_id, message):
-  url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-  payload = {"chat_id": chat_id, "text": message}
+  if not bot_token or not chat_id:
+    return {"ok": False, "description": "Token किंवा Chat ID भरलेला नाही"}
+  url = f"https://api.telegram.org/bot{bot_token.strip()}/sendMessage"
+  payload = {
+      "chat_id": str(chat_id).strip(),
+      "text": message,
+      "parse_mode": "HTML",
+  }
   try:
-    res = requests.post(url, json=payload, timeout=10)
-    return res.json()
+    response = requests.post(url, json=payload, timeout=10)
+    return response.json()
   except Exception as e:
-    return {"ok": False, "description": str(e)} 
-    headers = {
-        "authorization": str(api_key).strip(),
-        "Content-Type": "application/json"
-    }
-    
-    try:
-        # data ऐवजी json=payload वापरणे
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        return response.json()
-    except Exception as e:
-        return {"return": False, "message": str(e)}
+    return {"ok": False, "description": str(e)}
+
 
 # ================= 4. TECHNICAL INDICATORS =================
 def calculate_supertrend(df, period=10, multiplier=3):
@@ -142,14 +139,12 @@ def calculate_all_indicators(df):
   df["EMA_21"] = ta.trend.ema_indicator(df["Close"], window=21)
   df["EMA_50"] = ta.trend.ema_indicator(df["Close"], window=50)
   df["EMA_200"] = ta.trend.ema_indicator(df["Close"], window=200)
-
   df["RSI"] = ta.momentum.rsi(df["Close"], window=14)
   df["Stoch_RSI"] = ta.momentum.stochrsi(df["Close"], window=14) * 100
 
   macd = ta.trend.MACD(df["Close"])
   df["MACD"] = macd.macd()
   df["MACD_Signal"] = macd.macd_signal()
-  df["MACD_Hist"] = macd.macd_diff()
 
   bb = ta.volatility.BollingerBands(df["Close"], window=20, window_dev=2)
   df["BB_High"] = bb.bollinger_hband()
@@ -157,7 +152,6 @@ def calculate_all_indicators(df):
 
   tp = (df["High"] + df["Low"] + df["Close"]) / 3
   df["VWAP"] = (tp * df["Volume"]).cumsum() / df["Volume"].cumsum()
-
   df["Resistance_20"] = df["High"].rolling(window=20).max()
   df["Support_20"] = df["Low"].rolling(window=20).min()
 
@@ -170,7 +164,7 @@ def calculate_all_indicators(df):
   return df
 
 
-# ================= 5. FILTER FUNCTION =================
+# ================= 5. EVALUATE SIGNALS =================
 def evaluate_stock_signals(df, active_filters):
   if df.empty or len(df) < 30:
     return None
@@ -178,7 +172,6 @@ def evaluate_stock_signals(df, active_filters):
   df = calculate_all_indicators(df)
   p_close = float(df["Close"].iloc[-2])
   c_close = float(df["Close"].iloc[-1])
-
   triggers = []
 
   # 1. 9/21 EMA Cross
@@ -202,9 +195,9 @@ def evaluate_stock_signals(df, active_filters):
   # 3. Supertrend
   if active_filters.get("supertrend"):
     if df["ST_Signal"].iloc[-1] and not df["ST_Signal"].iloc[-2]:
-      triggers.append("🟢 Supertrend Turned Green (Buy)")
+      triggers.append("🟢 Supertrend Buy Signal")
     elif not df["ST_Signal"].iloc[-1] and df["ST_Signal"].iloc[-2]:
-      triggers.append("🔴 Supertrend Turned Red (Sell)")
+      triggers.append("🔴 Supertrend Sell Signal")
 
   # 4. MACD Crossover
   if active_filters.get("macd"):
@@ -241,23 +234,6 @@ def evaluate_stock_signals(df, active_filters):
     elif p_close >= p_vwap and c_close < vwap_val:
       triggers.append("⚠️ Dropped Below VWAP")
 
-  # 8. Support / Resistance Breakout
-  if active_filters.get("sr_breakout"):
-    res_20 = float(df["Resistance_20"].iloc[-2])
-    supp_20 = float(df["Support_20"].iloc[-2])
-    if c_close > res_20:
-      triggers.append("🧱 20-Day High Breakout")
-    elif c_close < supp_20:
-      triggers.append("🧱 20-Day Low Breakdown")
-
-  # 9. Stochastic RSI
-  if active_filters.get("stoch_rsi"):
-    stoch_v = float(df["Stoch_RSI"].iloc[-1])
-    if stoch_v <= 20:
-      triggers.append(f"⚡ Stoch RSI Oversold ({stoch_v:.1f})")
-    elif stoch_v >= 80:
-      triggers.append(f"⚡ Stoch RSI Overbought ({stoch_v:.1f})")
-
   if triggers:
     chg_pct = ((c_close - p_close) / p_close) * 100
     return {
@@ -282,8 +258,6 @@ if "last_scan_time" not in st.session_state:
 
 # ================= 7. LEFT SIDEBAR =================
 st.sidebar.title("🎛️ इंडिकेटर्स फिल्टर्स")
-st.sidebar.caption("सिग्नल्स हवे असलेले इंडिकेटर्स निवडा:")
-
 active_filters = {
     "ema_9_21": st.sidebar.checkbox("9/21 EMA Crossover", value=True),
     "supertrend": st.sidebar.checkbox("Supertrend (10, 3)", value=True),
@@ -296,44 +270,36 @@ active_filters = {
     "ema_50_200": st.sidebar.checkbox(
         "50/200 EMA (Golden / Death Cross)", value=False
     ),
-    "sr_breakout": st.sidebar.checkbox(
-        "20-Day Support/Resistance Breakout", value=False
-    ),
-    "stoch_rsi": st.sidebar.checkbox(
-        "Stochastic RSI (20 / 80 Extremes)", value=False
-    ),
 }
 
-st.sidebar.markdown("---")
 timeframe = st.sidebar.selectbox(
     "टाइमफ्रेम (Timeframe):", ["15m", "5m", "1h", "1d"], index=0
 )
 
 st.sidebar.markdown("---")
-st.sidebar.subheader("📱 ऑटो SMS अलर्ट सेटिंग")
-phone_no = st.sidebar.text_input("मोबाईल नंबर", value="8459958007")
-api_key = st.sidebar.text_input("Fast2SMS API Key", type="password")
+st.sidebar.subheader("✈️ Telegram अलर्ट सेटिंग")
+tg_token = st.sidebar.text_input("Telegram Bot Token", type="password")
+tg_chat_id = st.sidebar.text_input("Telegram Chat ID")
 
-# SMS Test Button
-if st.sidebar.button("📲 Test SMS पाठवून बघा"):
-  if api_key and phone_no:
-    test_res = send_sms_alert(
-        phone_no, "Test Alert from Screener App", api_key
-    )
-    if test_res.get("return"):
-      st.sidebar.success("Test SMS यशस्वीरित्या पाठवला!")
+# Telegram Test Button
+if st.sidebar.button("📲 Test Telegram Alert"):
+  if tg_token and tg_chat_id:
+    test_msg = "<b>✅ Screener Alert Test:</b>\nTelegram Bot अलर्ट व्यवस्थित सुरू आहे!"
+    res = send_telegram_alert(tg_token, tg_chat_id, test_msg)
+    if res.get("ok"):
+      st.sidebar.success("Telegram वर मेसेज आला आहे!")
     else:
-      st.sidebar.error(f"SMS अयशस्वी: {test_res.get('message')}")
+      st.sidebar.error(f"त्रुटी: {res.get('description')}")
   else:
-    st.sidebar.error("कृपया API Key आणि फोन नंबर प्रविष्ट करा.")
+    st.sidebar.error("कृपया Bot Token आणि Chat ID प्रविष्ट करा.")
 
 st.sidebar.markdown("---")
 if st.sidebar.button("🚀 ऑटो स्कॅनर सुरू करा"):
-  if api_key:
+  if tg_token and tg_chat_id:
     st.session_state.auto_scan_active = True
     st.rerun()
   else:
-    st.sidebar.error("कृपया आधी Fast2SMS API Key टाका.")
+    st.sidebar.error("कृपया Bot Token आणि Chat ID टाका.")
 
 if st.sidebar.button("⏹️ ऑटो स्कॅनर थांबवा"):
   st.session_state.auto_scan_active = False
@@ -341,27 +307,19 @@ if st.sidebar.button("⏹️ ऑटो स्कॅनर थांबवा"):
 
 # ================= 8. MAIN DASHBOARD =================
 st.title("🎯 केवळ सिग्नल देणारे शेअर्स (Signal-Only Scanner)")
-st.caption(
-    "डाव्या बाजूला निवडलेल्या इंडिकेटर्सनुसार ज्या शेअर्समध्ये Buy/Sell/Breakout"
-    " ट्रिगर झाला आहे, फक्त तेच शेअर्स दिसतील."
-)
-
 tab1, tab2 = st.tabs(
     ["⚡ त्वरित स्कॅन निकाल (Filtered Signals)", "📈 सिलेक्टेड शेअरचा लाईव्ह चार्ट"]
 )
 
 with tab1:
-  scan_btn = st.button("🔍 आता त्वरित स्कॅन करा (Instant Scan)")
-
-  if scan_btn:
-    with st.spinner("निवडलेल्या इंडिकेटर्सनुसार सर्व शेअर्स स्कॅन होत आहेत..."):
+  if st.button("🔍 आता त्वरित स्कॅन करा (Instant Scan)"):
+    with st.spinner("स्कॅनिंग सुरू आहे..."):
       matched_stocks = []
       for sym in ALL_STOCKS:
         try:
           df = yf.download(sym, period="5d", interval=timeframe, progress=False)
           if isinstance(df.columns, pd.MultiIndex):
             df.columns = [col[0] for col in df.columns]
-
           res = evaluate_stock_signals(df, active_filters)
           if res:
             matched_stocks.append({
@@ -369,7 +327,7 @@ with tab1:
                 "किंमत (CMP)": f"₹{res['Close']:.2f}",
                 "बदल (%)": f"{res['Change_Pct']:+.2f}%",
                 "RSI (14)": f"{res['RSI']:.1f}",
-                "मिळालेला सिग्नल (Triggered Signals)": res["Signals"],
+                "मिळालेला सिग्नल": res["Signals"],
             })
         except Exception:
           continue
@@ -380,21 +338,18 @@ with tab1:
         )
         st.dataframe(pd.DataFrame(matched_stocks), use_container_width=True)
       else:
-        st.info(
-            "निवडलेल्या इंडिकेटर्सनुसार सध्या कोणत्याही शेअरमध्ये सिग्नल तयार"
-            " झालेला नाही."
-        )
+        st.info("सध्या कोणत्याही शेअरमध्ये सिग्नल तयार झालेला नाही.")
 
   st.markdown("---")
-  st.subheader("📡 ऑटो-स्कॅनरद्वारे सापडलेले शेअर्स (Live Auto SMS Triggered)")
+  st.subheader("📡 ऑटो-स्कॅनरद्वारे सापडलेले शेअर्स (Live Telegram Alerts)")
 
   if st.session_state.auto_scan_active:
     st.success(
         f"🟢 ऑटो-स्कॅनर सुरू आहे (शेवटचे स्कॅन: {st.session_state.last_scan_time}) |"
-        f" लक्ष्यित नंबर: {phone_no}"
+        f" Chat ID: {tg_chat_id}"
     )
   else:
-    st.warning("⚪ ऑटो-स्कॅनर बंद आहे. सुरू करण्यासाठी साइडबारमधील बटण दाबा.")
+    st.warning("⚪ ऑटो-स्कॅनर बंद आहे.")
 
   if st.session_state.live_auto_table:
     st.dataframe(
@@ -404,21 +359,19 @@ with tab1:
     st.caption("अद्याप कोणतेही नवीन लाईव्ह ऑटो-सिग्नल्स ट्रिगर झालेले नाहीत.")
 
 with tab2:
-  st.subheader("📈 कँडलस्टिक चार्ट")
   chart_ticker = st.selectbox("स्टॉक निवडा:", ALL_STOCKS)
   df_chart = yf.download(chart_ticker, period="3mo", interval=timeframe)
-
   if not df_chart.empty:
     if isinstance(df_chart.columns, pd.MultiIndex):
       df_chart.columns = [col[0] for col in df_chart.columns]
     df_chart = calculate_all_indicators(df_chart)
 
     fig = make_subplots(
-        rows=3,
+        rows=2,
         cols=1,
         shared_xaxes=True,
         vertical_spacing=0.03,
-        row_heights=[0.6, 0.2, 0.2],
+        row_heights=[0.7, 0.3],
     )
     fig.add_trace(
         go.Candlestick(
@@ -455,70 +408,21 @@ with tab2:
     fig.add_trace(
         go.Scatter(
             x=df_chart.index,
-            y=df_chart["EMA_200"],
-            line=dict(color="red", width=1.5),
-            name="200 EMA",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["BB_High"],
-            line=dict(color="gray", dash="dash"),
-            name="BB Upper",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["BB_Low"],
-            line=dict(color="gray", dash="dash"),
-            fill="tonexty",
-            fillcolor="rgba(200,200,200,0.1)",
-            name="BB Lower",
-        ),
-        row=1,
-        col=1,
-    )
-
-    vol_col = [
-        "green" if c >= o else "red"
-        for c, o in zip(df_chart["Close"], df_chart["Open"])
-    ]
-    fig.add_trace(
-        go.Bar(
-            x=df_chart.index,
-            y=df_chart["Volume"],
-            marker_color=vol_col,
-            name="Volume",
+            y=df_chart["RSI"],
+            line=dict(color="purple", width=1.3),
+            name="RSI",
         ),
         row=2,
         col=1,
     )
-
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["RSI"],
-            line=dict(color="purple", width=1.3),
-            name="RSI (14)",
-        ),
-        row=3,
-        col=1,
-    )
-    fig.add_hline(y=70, line_dash="dash", line_color="red", row=3, col=1)
-    fig.add_hline(y=30, line_dash="dash", line_color="green", row=3, col=1)
-
+    fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
+    fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
     fig.update_layout(
-        height=700, template="plotly_white", xaxis_rangeslider_visible=False
+        height=650, template="plotly_white", xaxis_rangeslider_visible=False
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# ================= 9. AUTO-RUN SCHEDULER LOOP (STREAMLIT NATIVE) =================
+# ================= 9. AUTO-RUN LOOP =================
 if st.session_state.auto_scan_active:
   now_time = datetime.now().strftime("%H:%M:%S")
   st.session_state.last_scan_time = now_time
@@ -536,9 +440,15 @@ if st.session_state.auto_scan_active:
           alert_key = f"{sym}{today}{res['Raw_Signals'][0]}"
 
           if alert_key not in st.session_state.sent_alerts:
-            sms_msg = f"SIGNAL: {sym} | CMP: {res['Close']:.1f} | RSI: {res['RSI']:.0f} | {res['Signals'][:30]}"
-            sms_res = send_sms_alert(phone_no, sms_msg, api_key)
-
+            tg_msg = (
+                f"🚨 <b>SIGNAL ALERT</b> 🚨\n\n"
+                f"📈 <b>Stock:</b> {sym}\n"
+                f"💰 <b>Price:</b> ₹{res['Close']:.2f} ({res['Change_Pct']:+.2f}%)\n"
+                f"📊 <b>RSI:</b> {res['RSI']:.1f}\n"
+                f"🎯 <b>Trigger:</b> {res['Signals']}\n"
+                f"⏰ <b>Time:</b> {now_time}"
+            )
+            tg_res = send_telegram_alert(tg_token, tg_chat_id, tg_msg)
             st.session_state.sent_alerts.add(alert_key)
             st.session_state.live_auto_table.insert(
                 0,
@@ -548,12 +458,11 @@ if st.session_state.auto_scan_active:
                     "किंमत (CMP)": f"₹{res['Close']:.2f}",
                     "बदल (%)": f"{res['Change_Pct']:+.2f}%",
                     "RSI": f"{res['RSI']:.1f}",
-                    "सिग्नल (Triggered Signals)": res["Signals"],
+                    "सिग्नल": res["Signals"],
                 },
             )
       except Exception:
         continue
 
-  # १८० सेकंदांनंतर (३ मिनिटे) पेज ऑटोमॅटिक रीलोड होऊन पुढचा स्कॅन होईल
   time.sleep(180)
   st.rerun()
