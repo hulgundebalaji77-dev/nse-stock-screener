@@ -1,0 +1,27 @@
+name: 1-Min NSE Auto Scanner
+
+on:
+  schedule:
+    # सोमवार ते शुक्रवार: सकाळी 9:00 ते दुपारी 3:30 (UTC नुसार 03:30 ते 10:00) दर तासाला ट्रिगर होईल
+    - cron: '30 3-10 * * 1-5'
+  workflow_dispatch: # मॅन्युअली टेस्ट करण्यासाठी
+
+jobs:
+  run-1min-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install yfinance pandas ta requests
+
+      - name: Run 1-Min Scanner
+        run: |
+          python background_scanner.py
