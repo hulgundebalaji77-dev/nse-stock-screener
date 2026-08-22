@@ -100,5 +100,4 @@ def run_scanner_loop():
     time.sleep(60)  # १ मिनिटाचा ब्रेक
 
 
-if _name_ == "_main_":
-  run_scanner_loop()
+run_scanner_loop()
