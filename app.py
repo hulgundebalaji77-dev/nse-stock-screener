@@ -1,318 +1,287 @@
 from datetime import datetime
-import time
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import requests
 import streamlit as st
 import ta
 import yfinance as yf
 
-# ================= 1. PAGE CONFIGURATION =================
 st.set_page_config(
-    page_title="Price vs EMA Screener & Telegram Alert", layout="wide"
+    page_title="Professional Stock & Commodity Screener",
+    layout="wide",
+    page_icon="📈",
 )
 
-# ================= 2. ALL SECTOR STOCKS =================
-ALL_STOCKS = [
-    "HDFCBANK.NS",
-    "ICICIBANK.NS",
-    "SBIN.NS",
-    "KOTAKBANK.NS",
-    "AXISBANK.NS",
-    "INDUSINDBK.NS",
-    "BANKBARODA.NS",
-    "PNB.NS",
-    "BAJFINANCE.NS",
-    "BAJAJFINSV.NS",
-    "TCS.NS",
-    "INFY.NS",
-    "HCLTECH.NS",
-    "WIPRO.NS",
-    "LTIM.NS",
-    "TECHM.NS",
-    "PERSISTENT.NS",
-    "COFORGE.NS",
-    "TATAMOTORS.NS",
-    "M&M.NS",
-    "MARUTI.NS",
-    "BAJAJ-AUTO.NS",
-    "HEROMOTOCO.NS",
-    "EICHERMOT.NS",
-    "TVSMOTOR.NS",
-    "SUNPHARMA.NS",
-    "DRREDDY.NS",
-    "CIPLA.NS",
-    "DIVISLAB.NS",
-    "LUPIN.NS",
-    "APOLLOHOSP.NS",
-    "AUROPHARMA.NS",
-    "ITC.NS",
-    "HINDUNILVR.NS",
-    "NESTLEIND.NS",
-    "BRITANNIA.NS",
-    "TATACONSUM.NS",
-    "VBL.NS",
-    "TITAN.NS",
-    "DABUR.NS",
-    "TATASTEEL.NS",
-    "JSWSTEEL.NS",
-    "HINDALCO.NS",
-    "JINDALSTEL.NS",
-    "VEDL.NS",
-    "COALINDIA.NS",
-    "RELIANCE.NS",
-    "ONGC.NS",
-    "NTPC.NS",
-    "POWERGRID.NS",
-    "BPCL.NS",
-    "IOC.NS",
-    "ADANIENT.NS",
-    "ADANIPORTS.NS",
-    "LT.NS",
-    "ULTRACEMCO.NS",
-    "GRASIM.NS",
-    "DLF.NS",
-    "GODREJPROP.NS",
-    "AMBUJACEM.NS",
-]
-
-
-# ================= 3. TELEGRAM ALERT FUNCTION =================
-def send_telegram_alert(bot_token, chat_id, message):
-  if not bot_token or not chat_id:
-    return {"ok": False, "description": "Token किंवा Chat ID भरलेला नाही"}
-  url = f"https://api.telegram.org/bot{bot_token.strip()}/sendMessage"
-  payload = {
-      "chat_id": str(chat_id).strip(),
-      "text": message,
-      "parse_mode": "HTML",
-  }
-  try:
-    response = requests.post(url, json=payload, timeout=10)
-    return response.json()
-  except Exception as e:
-    return {"ok": False, "description": str(e)}
-
-
-# ================= 4. TECHNICAL INDICATORS =================
-def calculate_all_indicators(df):
-  df["EMA_9"] = ta.trend.ema_indicator(df["Close"], window=9)
-  df["EMA_21"] = ta.trend.ema_indicator(df["Close"], window=21)
-  df["EMA_50"] = ta.trend.ema_indicator(df["Close"], window=50)
-  df["EMA_200"] = ta.trend.ema_indicator(df["Close"], window=200)
-  df["RSI"] = ta.momentum.rsi(df["Close"], window=14)
-  return df
-
-
-# ================= 5. EVALUATE PRICE VS EMA SIGNALS =================
-def evaluate_stock_signals(df, active_filters):
-  if df.empty or len(df) < 30:
-    return None
-
-  df = calculate_all_indicators(df)
-  p_close = float(df["Close"].iloc[-2])
-  c_close = float(df["Close"].iloc[-1])
-  triggers = []
-
-  # 1. Price vs 9 EMA
-  if active_filters.get("price_ema_9") and pd.notna(df["EMA_9"].iloc[-1]):
-    p_e9, c_e9 = float(df["EMA_9"].iloc[-2]), float(df["EMA_9"].iloc[-1])
-    if p_close <= p_e9 and c_close > c_e9:
-      triggers.append("🟢 Price Crossed ABOVE 9 EMA")
-    elif p_close >= p_e9 and c_close < c_e9:
-      triggers.append("🔴 Price Dropped BELOW 9 EMA")
-
-  # 2. Price vs 21 EMA
-  if active_filters.get("price_ema_21") and pd.notna(df["EMA_21"].iloc[-1]):
-    p_e21, c_e21 = float(df["EMA_21"].iloc[-2]), float(df["EMA_21"].iloc[-1])
-    if p_close <= p_e21 and c_close > c_e21:
-      triggers.append("🟢 Price Crossed ABOVE 21 EMA")
-    elif p_close >= p_e21 and c_close < c_e21:
-      triggers.append("🔴 Price Dropped BELOW 21 EMA")
-
-  # 3. Price vs 50 EMA
-  if active_filters.get("price_ema_50") and pd.notna(df["EMA_50"].iloc[-1]):
-    p_e50, c_e50 = float(df["EMA_50"].iloc[-2]), float(df["EMA_50"].iloc[-1])
-    if p_close <= p_e50 and c_close > c_e50:
-      triggers.append("🚀 Price Crossed ABOVE 50 EMA")
-    elif p_close >= p_e50 and c_close < c_e50:
-      triggers.append("🔻 Price Dropped BELOW 50 EMA")
-
-  # 4. Price vs 200 EMA
-  if active_filters.get("price_ema_200") and pd.notna(df["EMA_200"].iloc[-1]):
-    p_e200, c_e200 = (
-        float(df["EMA_200"].iloc[-2]),
-        float(df["EMA_200"].iloc[-1]),
-    )
-    if p_close <= p_e200 and c_close > c_e200:
-      triggers.append("🔥 Price Crossed ABOVE 200 EMA (Major Bullish)")
-    elif p_close >= p_e200 and c_close < c_e200:
-      triggers.append("⚠️ Price Dropped BELOW 200 EMA (Major Bearish)")
-
-  if triggers:
-    chg_pct = ((c_close - p_close) / p_close) * 100
-    return {
-        "Close": c_close,
-        "Change_Pct": chg_pct,
-        "RSI": (
-            float(df["RSI"].iloc[-1]) if pd.notna(df["RSI"].iloc[-1]) else 0.0
-        ),
-        "Signals": " | ".join(triggers),
-        "Raw_Signals": triggers,
-    }
-  return None
-
-
-# ================= 6. SESSION STATE INITIALIZATION =================
-if "auto_scan_active" not in st.session_state:
-  st.session_state.auto_scan_active = False
-if "sent_alerts" not in st.session_state:
-  st.session_state.sent_alerts = set()
-if "live_auto_table" not in st.session_state:
-  st.session_state.live_auto_table = []
-if "last_scan_time" not in st.session_state:
-  st.session_state.last_scan_time = "कधीच नाही"
-
-# ================= 7. LEFT SIDEBAR =================
-st.sidebar.title("🎛️ Price vs EMA फिल्टर्स")
-st.sidebar.caption("ज्या EMA वर किंमत गेल्यास अलर्ट हवा आहे ते सिलेक्ट करा:")
-
-active_filters = {
-    "price_ema_9": st.sidebar.checkbox(
-        "⚡ Price Crossed 9 EMA (Above / Below)", value=True
-    ),
-    "price_ema_21": st.sidebar.checkbox(
-        "📈 Price Crossed 21 EMA (Above / Below)", value=True
-    ),
-    "price_ema_50": st.sidebar.checkbox(
-        "🚀 Price Crossed 50 EMA (Above / Below)", value=True
-    ),
-    "price_ema_200": st.sidebar.checkbox(
-        "🔥 Price Crossed 200 EMA (Above / Below)", value=True
-    ),
+# ---- इंडेक्स व कमॉडिटीनुसार शेअर्सची वर्गवारी ----
+MARKET_SECTORS = {
+    "NIFTY 50 (All Stocks)": [
+        "ADANIENT.NS",
+        "ADANIPORTS.NS",
+        "APOLLOHOSP.NS",
+        "ASIANPAINT.NS",
+        "AXISBANK.NS",
+        "BAJAJ-AUTO.NS",
+        "BAJFINANCE.NS",
+        "BAJAJFINSV.NS",
+        "BPCL.NS",
+        "BHARTIARTL.NS",
+        "BRITANNIA.NS",
+        "CIPLA.NS",
+        "COALINDIA.NS",
+        "DRREDDY.NS",
+        "EICHERMOT.NS",
+        "GRASIM.NS",
+        "HCLTECH.NS",
+        "HDFCBANK.NS",
+        "HDFCLIFE.NS",
+        "HEROMOTOCO.NS",
+        "HINDALCO.NS",
+        "HINDUNILVR.NS",
+        "ICICIBANK.NS",
+        "INDUSINDBK.NS",
+        "INFY.NS",
+        "ITC.NS",
+        "JSWSTEEL.NS",
+        "KOTAKBANK.NS",
+        "LT.NS",
+        "M&M.NS",
+        "MARUTI.NS",
+        "NESTLEIND.NS",
+        "NTPC.NS",
+        "ONGC.NS",
+        "POWERGRID.NS",
+        "RELIANCE.NS",
+        "SBILIFE.NS",
+        "SBIN.NS",
+        "SUNPHARMA.NS",
+        "TATACONSUM.NS",
+        "TATAMOTORS.NS",
+        "TATASTEEL.NS",
+        "TCS.NS",
+        "TECHM.NS",
+        "TITAN.NS",
+        "ULTRACEMCO.NS",
+        "WIPRO.NS",
+    ],
+    "BANKNIFTY (All Stocks)": [
+        "HDFCBANK.NS",
+        "ICICIBANK.NS",
+        "SBIN.NS",
+        "KOTAKBANK.NS",
+        "AXISBANK.NS",
+        "INDUSINDBK.NS",
+        "BANKBARODA.NS",
+        "PNB.NS",
+        "AUBANK.NS",
+        "FEDERALBNK.NS",
+        "IDFCFIRSTB.NS",
+        "BANDHANBNK.NS",
+    ],
+    "FINNIFTY (All Stocks)": [
+        "HDFCBANK.NS",
+        "ICICIBANK.NS",
+        "KOTAKBANK.NS",
+        "AXISBANK.NS",
+        "SBIN.NS",
+        "BAJFINANCE.NS",
+        "BAJAJFINSV.NS",
+        "HDFCLIFE.NS",
+        "SBILIFE.NS",
+        "CHOLAFIN.NS",
+        "SHRIRAMFIN.NS",
+        "MUTHOOTFIN.NS",
+        "PFC.NS",
+        "RECLTD.NS",
+    ],
+    "SENSEX 30": [
+        "HDFCBANK.BO",
+        "RELIANCE.BO",
+        "ICICIBANK.BO",
+        "INFY.BO",
+        "TCS.BO",
+        "ITC.BO",
+        "LT.BO",
+        "AXISBANK.BO",
+        "SBIN.BO",
+        "BHARTIARTL.BO",
+        "KOTAKBANK.BO",
+        "HINDUNILVR.BO",
+        "M&M.BO",
+        "MARUTI.BO",
+        "SUNPHARMA.BO",
+        "TATASTEEL.BO",
+        "TITAN.BO",
+        "BAJFINANCE.BO",
+        "ASIANPAINT.BO",
+        "NTPC.BO",
+        "POWERGRID.BO",
+        "ULTRACEMCO.BO",
+        "NESTLEIND.BO",
+        "TECHM.BO",
+        "WIPRO.BO",
+        "JSWSTEEL.BO",
+        "TATAMOTORS.BO",
+        "INDUSINDBK.BO",
+        "BAJAJFINSV.BO",
+        "HCLTECH.BO",
+    ],
+    "COMMODITY (Crude Oil & Gold)": [
+        "CL=F",
+        "GC=F",
+        "MCX:CRUDEOIL",
+        "MCX:GOLD",
+        "GOLDBEES.NS",
+    ],
 }
 
-st.sidebar.markdown("---")
+# ---- SIDEBAR: सेटिंग्ज ----
+st.sidebar.header("⚙️ स्कॅनर पॅरामीटर्स")
+
+selected_market = st.sidebar.selectbox(
+    "📊 इंडेक्स / कमॉडिटी निवडा:", list(MARKET_SECTORS.keys())
+)
+selected_stocks = MARKET_SECTORS[selected_market]
+
 timeframe = st.sidebar.selectbox(
-    "टाइमफ्रेम (Timeframe):", ["15m", "5m", "1h", "1d"], index=0
+    "⏱️ Timeframe निवडा:",
+    ["1m", "5m", "15m", "1h", "1d"],
+    index=2,  # 15m default
+)
+
+selected_emas = st.sidebar.multiselect(
+    "📈 EMA इंडिकेटर्स निवडा:",
+    [9, 21, 50, 200],
+    default=[9, 21, 50, 200],
+)
+
+check_sr = st.sidebar.checkbox(
+    "🎯 Support & Resistance लेव्हल्स दाखवा", value=True
 )
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("✈️ Telegram अलर्ट सेटिंग")
-tg_token = st.sidebar.text_input("Telegram Bot Token", type="password")
-tg_chat_id = st.sidebar.text_input("Telegram Chat ID")
+tg_token = st.sidebar.text_input(
+    "Bot Token",
+    type="password",
+    value="8799046332:AAEMln5lVcfrnzQ23ymg...",
+)  # तुमचे बरोबर टोकन टाका
+tg_chat_id = st.sidebar.text_input("Chat ID", value="5055029691")
 
-# Telegram Test Button
-if st.sidebar.button("📲 Test Telegram Alert"):
+
+def send_telegram(msg):
   if tg_token and tg_chat_id:
-    test_msg = "<b>✅ Screener Test:</b>\nPrice vs EMA अलर्ट सक्रिय आहे!"
-    res = send_telegram_alert(tg_token, tg_chat_id, test_msg)
-    if res.get("ok"):
-      st.sidebar.success("Telegram वर मेसेज आला आहे!")
-    else:
-      st.sidebar.error(f"त्रुटी: {res.get('description')}")
-  else:
-    st.sidebar.error("कृपया Bot Token आणि Chat ID प्रविष्ट करा.")
+    url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+    try:
+      requests.post(
+          url,
+          json={"chat_id": tg_chat_id, "text": msg, "parse_mode": "HTML"},
+          timeout=5,
+      )
+    except Exception:
+      pass
 
-st.sidebar.markdown("---")
-if st.sidebar.button("🚀 ऑटो स्कॅनर सुरू करा"):
-  if tg_token and tg_chat_id:
-    st.session_state.auto_scan_active = True
-    st.rerun()
-  else:
-    st.sidebar.error("कृपया आधी Bot Token आणि Chat ID टाका.")
 
-if st.sidebar.button("⏹️ ऑटो स्कॅनर थांबवा"):
-  st.session_state.auto_scan_active = False
-  st.rerun()
-
-# ================= 8. MAIN DASHBOARD =================
-st.title("🎯 Price vs 9, 21, 50, 200 EMA Screener")
+# ---- MAIN UI ----
+st.title("📊 Multi-Asset Market Screener")
 st.caption(
-    "किंमत (Price) कोणत्याही निवडलेल्या EMA च्या वर गेल्यास (Breakout) किंवा"
-    " खाली आल्यास थेट अलर्ट मिळतील."
+    f"सध्या निवडलेले: *{selected_market}* | टाईमफ्रेम: *{timeframe}*"
 )
 
 tab1, tab2 = st.tabs(
-    ["⚡ त्वरित स्कॅन निकाल (Filtered Signals)", "📈 सिलेक्टेड शेअरचा लाईव्ह चार्ट"]
+    ["⚡ त्वरित स्कॅन निकाल (Signals)", "🕯️ कॅन्डलस्टिक व S&R चार्ट"]
 )
+
+# डेटा फेच आणि कॅल्क्युलेशन फंक्शन
+period_map = {"1m": "5d", "5m": "10d", "15m": "30d", "1h": "60d", "1d": "1y"}
+
+
+@st.cache_data(ttl=60)
+def fetch_and_calculate(symbol, tf):
+  try:
+    df = yf.download(
+        symbol, period=period_map.get(tf, "30d"), interval=tf, progress=False
+    )
+    if isinstance(df.columns, pd.MultiIndex):
+      df.columns = [col[0] for col in df.columns]
+    if len(df) < 50:
+      return None
+
+    # EMA कॅल्क्युलेशन
+    for ema in [9, 21, 50, 200]:
+      df[f"EMA_{ema}"] = ta.trend.ema_indicator(df["Close"], window=ema)
+
+    # Support & Resistance (मागील २० कँडल्सचा High/Low)
+    df["Resistance"] = df["High"].rolling(20).max()
+    df["Support"] = df["Low"].rolling(20).min()
+    return df
+  except Exception:
+    return None
+
 
 with tab1:
   if st.button("🔍 आता त्वरित स्कॅन करा (Instant Scan)"):
-    with st.spinner("सर्व शेअर्समधील EMA क्रॉसओव्हर स्कॅन होत आहेत..."):
-      matched_stocks = []
-      # 200 EMA साठी किमान 60 दिवसांचा डेटा आवश्यक असतो
-      period_val = "60d" if timeframe in ["5m", "15m", "1h"] else "1y"
-      for sym in ALL_STOCKS:
-        try:
-          df = yf.download(
-              sym, period=period_val, interval=timeframe, progress=False
-          )
-          if isinstance(df.columns, pd.MultiIndex):
-            df.columns = [col[0] for col in df.columns]
-          res = evaluate_stock_signals(df, active_filters)
-          if res:
-            matched_stocks.append({
-                "स्टॉक (Stock)": sym,
-                "किंमत (CMP)": f"₹{res['Close']:.2f}",
-                "बदल (%)": f"{res['Change_Pct']:+.2f}%",
-                "RSI (14)": f"{res['RSI']:.1f}",
-                "मिळालेला सिग्नल": res["Signals"],
-            })
-        except Exception:
-          continue
+    results = []
+    bar = st.progress(0)
 
-      if matched_stocks:
-        st.success(
-            f"🎯 एकूण {len(matched_stocks)} शेअर्समध्ये EMA क्रॉसओव्हर सिग्नल"
-            " सापडले!"
+    for idx, sym in enumerate(selected_stocks):
+      bar.progress((idx + 1) / len(selected_stocks))
+      df = fetch_and_calculate(sym, timeframe)
+      if df is None or len(df) < 2:
+        continue
+
+      c_close = float(df["Close"].iloc[-1])
+      p_close = float(df["Close"].iloc[-2])
+      res_lvl = float(df["Resistance"].iloc[-2])
+      sup_lvl = float(df["Support"].iloc[-2])
+
+      signals = []
+
+      # EMA ट्रिगर्स
+      for ema in selected_emas:
+        if f"EMA_{ema}" in df.columns:
+          p_ema = float(df[f"EMA_{ema}"].iloc[-2])
+          c_ema = float(df[f"EMA_{ema}"].iloc[-1])
+          if p_close <= p_ema and c_close > c_ema:
+            signals.append(f"🟢 Crossed Above {ema} EMA")
+          elif p_close >= p_ema and c_close < c_ema:
+            signals.append(f"🔴 Crossed Below {ema} EMA")
+
+      # Support & Resistance ब्रेकआऊट
+      if check_sr:
+        if c_close > res_lvl and p_close <= res_lvl:
+          signals.append("🚀 Resistance Breakout")
+        elif c_close < sup_lvl and p_close >= sup_lvl:
+          signals.append("⚠️ Support Breakdown")
+
+      if signals:
+        clean_name = (
+            sym.replace(".NS", "")
+            .replace(".BO", "")
+            .replace("CL=F", "CRUDE OIL")
+            .replace("GC=F", "GOLD")
         )
-        st.dataframe(pd.DataFrame(matched_stocks), use_container_width=True)
-      else:
-        st.info(
-            "सध्या कोणत्याही शेअरमध्ये निवडलेल्या EMA च्या वर/खाली जाण्याचा"
-            " सिग्नल मिळालेला नाही."
-        )
+        results.append({
+            "Asset / Stock": clean_name,
+            "CMP (₹)": f"{c_close:.2f}",
+            "Signals": " | ".join(signals),
+            "Support (₹)": f"{sup_lvl:.2f}",
+            "Resistance (₹)": f"{res_lvl:.2f}",
+        })
 
-  st.markdown("---")
-  st.subheader("📡 ऑटो-स्कॅनरद्वारे सापडलेले शेअर्स (Live Telegram Alerts)")
-
-  if st.session_state.auto_scan_active:
-    st.success(
-        f"🟢 ऑटो-स्कॅनर सुरू आहे (शेवटचे स्कॅन: {st.session_state.last_scan_time}) |"
-        f" Chat ID: {tg_chat_id}"
-    )
-  else:
-    st.warning("⚪ ऑटो-स्कॅनर बंद आहे.")
-
-  if st.session_state.live_auto_table:
-    st.dataframe(
-        pd.DataFrame(st.session_state.live_auto_table), use_container_width=True
-    )
-  else:
-    st.caption("अद्याप कोणतेही नवीन लाईव्ह ऑटो-सिग्नल्स ट्रिगर झालेले नाहीत.")
+    if results:
+      res_df = pd.DataFrame(results)
+      st.success(f"🎯 एकूण {len(results)} सिग्नल्स सापडले!")
+      st.dataframe(res_df, use_container_width=True)
+    else:
+      st.info("या टाईमफ्रेमवर सध्या कोणताही नवीन सिग्नल मिळालेला नाही.")
 
 with tab2:
-  chart_ticker = st.selectbox("स्टॉक निवडा:", ALL_STOCKS)
-  df_chart = yf.download(
-      chart_ticker,
-      period="1y" if timeframe == "1d" else "60d",
-      interval=timeframe,
-  )
-  if not df_chart.empty:
-    if isinstance(df_chart.columns, pd.MultiIndex):
-      df_chart.columns = [col[0] for col in df_chart.columns]
-    df_chart = calculate_all_indicators(df_chart)
+  chart_sym = st.selectbox("शेअर/कमॉडिटी निवडा:", selected_stocks)
+  df_chart = fetch_and_calculate(chart_sym, timeframe)
 
-    fig = make_subplots(
-        rows=2,
-        cols=1,
-        shared_xaxes=True,
-        vertical_spacing=0.03,
-        row_heights=[0.75, 0.25],
-    )
+  if df_chart is not None:
+    fig = go.Figure()
+    # Candlestick
     fig.add_trace(
         go.Candlestick(
             x=df_chart.index,
@@ -321,115 +290,42 @@ with tab2:
             low=df_chart["Low"],
             close=df_chart["Close"],
             name="Price",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["EMA_9"],
-            line=dict(color="blue", width=1.2),
-            name="9 EMA",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["EMA_21"],
-            line=dict(color="orange", width=1.2),
-            name="21 EMA",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["EMA_50"],
-            line=dict(color="green", width=1.3),
-            name="50 EMA",
-        ),
-        row=1,
-        col=1,
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["EMA_200"],
-            line=dict(color="red", width=1.5),
-            name="200 EMA",
-        ),
-        row=1,
-        col=1,
+        )
     )
 
-    fig.add_trace(
-        go.Scatter(
-            x=df_chart.index,
-            y=df_chart["RSI"],
-            line=dict(color="purple", width=1.3),
-            name="RSI",
-        ),
-        row=2,
-        col=1,
-    )
-    fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
-    fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
+    # Selected EMAs
+    colors = {9: "orange", 21: "blue", 50: "purple", 200: "red"}
+    for ema in selected_emas:
+      if f"EMA_{ema}" in df_chart.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df_chart.index,
+                y=df_chart[f"EMA_{ema}"],
+                name=f"EMA {ema}",
+                line=dict(color=colors.get(ema, "black"), width=1.5),
+            )
+        )
+
+    # Support & Resistance Lines
+    if check_sr:
+      latest_res = df_chart["Resistance"].iloc[-1]
+      latest_sup = df_chart["Support"].iloc[-1]
+      fig.add_hline(
+          y=latest_res,
+          line_dash="dash",
+          line_color="green",
+          annotation_text=f"Resistance: {latest_res:.2f}",
+      )
+      fig.add_hline(
+          y=latest_sup,
+          line_dash="dash",
+          line_color="red",
+          annotation_text=f"Support: {latest_sup:.2f}",
+      )
+
     fig.update_layout(
-        height=650, template="plotly_white", xaxis_rangeslider_visible=False
+        title=f"{chart_sym} Technical Chart",
+        xaxis_rangeslider_visible=False,
+        height=550,
     )
     st.plotly_chart(fig, use_container_width=True)
-
-# ================= 9. AUTO-RUN LOOP =================
-if st.session_state.auto_scan_active:
-  now_time = datetime.now().strftime("%H:%M:%S")
-  st.session_state.last_scan_time = now_time
-  period_val = "60d" if timeframe in ["5m", "15m", "1h"] else "1y"
-
-  with st.spinner(
-      "किंमत EMA च्या वर/खाली जात आहे का हे तपासत आहे... (पुढील फेरी ३"
-      " मिनिटांत होईल)"
-  ):
-    for sym in ALL_STOCKS:
-      try:
-        df = yf.download(
-            sym, period=period_val, interval=timeframe, progress=False
-        )
-        if isinstance(df.columns, pd.MultiIndex):
-          df.columns = [col[0] for col in df.columns]
-
-        res = evaluate_stock_signals(df, active_filters)
-        if res:
-          today = datetime.now().strftime("%Y-%m-%d")
-          alert_key = f"{sym}{today}{res['Raw_Signals'][0]}"
-
-          if alert_key not in st.session_state.sent_alerts:
-            tg_msg = (
-                f"🚨 <b>PRICE vs EMA ALERT</b> 🚨\n\n"
-                f"📈 <b>Stock:</b> {sym}\n"
-                f"💰 <b>Price:</b> ₹{res['Close']:.2f} ({res['Change_Pct']:+.2f}%)\n"
-                f"🎯 <b>Trigger:</b> {res['Signals']}\n"
-                f"📊 <b>RSI:</b> {res['RSI']:.1f}\n"
-                f"⏰ <b>Time:</b> {now_time}"
-            )
-            tg_res = send_telegram_alert(tg_token, tg_chat_id, tg_msg)
-            st.session_state.sent_alerts.add(alert_key)
-            st.session_state.live_auto_table.insert(
-                0,
-                {
-                    "वेळ (Time)": now_time,
-                    "स्टॉक (Stock)": sym,
-                    "किंमत (CMP)": f"₹{res['Close']:.2f}",
-                    "बदल (%)": f"{res['Change_Pct']:+.2f}%",
-                    "RSI": f"{res['RSI']:.1f}",
-                    "सिग्नल": res["Signals"],
-                },
-            )
-      except Exception:
-        continue
-
-  time.sleep(180)
-  st.rerun()
