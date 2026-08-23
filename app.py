@@ -7,14 +7,102 @@ import ta
 import yfinance as yf
 
 st.set_page_config(
-    page_title="Professional Stock & Commodity Screener",
+    page_title="NEON PRO Market Screener",
     layout="wide",
-    page_icon="📈",
+    page_icon="🔥",
+    initial_sidebar_state="expanded",
 )
 
-# ---- इंडेक्स व कमॉडिटीनुसार शेअर्सची वर्गवारी ----
+# ---- ULTRA COLOURFUL NEON CSS STYLING ----
+st.markdown(
+    """
+<style>
+    /* Dark Neon Background Glow */
+    .stApp {
+        background-color: #0d1117;
+    }
+    
+    /* Neon Gradient Title */
+    .neon-title {
+        background: linear-gradient(135deg, #FF007A 0%, #7928CA 40%, #00F0FF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 2.6rem;
+        font-weight: 900;
+        text-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        margin-bottom: 0px;
+    }
+    .neon-subtitle {
+        color: #58a6ff;
+        font-size: 1rem;
+        font-weight: 500;
+        margin-bottom: 25px;
+    }
+
+    /* Colourful Vibrant Cards */
+    .card-pink {
+        background: linear-gradient(135deg, #1f1024 0%, #3b1238 100%);
+        border: 1.5px solid #ff2a85;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(255, 42, 133, 0.25);
+    }
+    .card-cyan {
+        background: linear-gradient(135deg, #091f2c 0%, #0c3345 100%);
+        border: 1.5px solid #00f0ff;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+    }
+    .card-purple {
+        background: linear-gradient(135deg, #17102b 0%, #291a4d 100%);
+        border: 1.5px solid #a855f7;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
+    }
+    .card-green {
+        background: linear-gradient(135deg, #0d2417 0%, #103d22 100%);
+        border: 1.5px solid #00ff88;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.25);
+    }
+    
+    .card-val-pink { font-size: 1.8rem; font-weight: 800; color: #ff66b2; }
+    .card-val-cyan { font-size: 1.8rem; font-weight: 800; color: #38ef7d; }
+    .card-val-purple { font-size: 1.8rem; font-weight: 800; color: #c084fc; }
+    .card-val-green { font-size: 1.8rem; font-weight: 800; color: #00ff88; }
+    .card-lbl { color: #c9d1d9; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+
+    /* Glowing Multi-colour Scan Button */
+    div.stButton > button:first-child {
+        background: linear-gradient(90deg, #ff007a 0%, #7928ca 50%, #00f0ff 100%);
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 1.1rem;
+        border-radius: 12px;
+        border: none;
+        padding: 0.75rem 2.5rem;
+        box-shadow: 0 0 20px rgba(255, 0, 122, 0.5);
+        transition: all 0.3s ease-in-out;
+    }
+    div.stButton > button:first-child:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+        color: #ffffff;
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 MARKET_SECTORS = {
-    "NIFTY 50 (All Stocks)": [
+    "🔥 NIFTY 50": [
         "ADANIENT.NS",
         "ADANIPORTS.NS",
         "APOLLOHOSP.NS",
@@ -63,7 +151,7 @@ MARKET_SECTORS = {
         "ULTRACEMCO.NS",
         "WIPRO.NS",
     ],
-    "BANKNIFTY (All Stocks)": [
+    "🏦 BANKNIFTY": [
         "HDFCBANK.NS",
         "ICICIBANK.NS",
         "SBIN.NS",
@@ -77,7 +165,7 @@ MARKET_SECTORS = {
         "IDFCFIRSTB.NS",
         "BANDHANBNK.NS",
     ],
-    "FINNIFTY (All Stocks)": [
+    "💳 FINNIFTY": [
         "HDFCBANK.NS",
         "ICICIBANK.NS",
         "KOTAKBANK.NS",
@@ -93,7 +181,7 @@ MARKET_SECTORS = {
         "PFC.NS",
         "RECLTD.NS",
     ],
-    "SENSEX 30": [
+    "🏛️ SENSEX 30": [
         "HDFCBANK.BO",
         "RELIANCE.BO",
         "ICICIBANK.BO",
@@ -125,7 +213,7 @@ MARKET_SECTORS = {
         "BAJAJFINSV.BO",
         "HCLTECH.BO",
     ],
-    "COMMODITY (Crude Oil & Gold)": [
+    "🛢️ COMMODITY (Crude & Gold)": [
         "CL=F",
         "GC=F",
         "MCX:CRUDEOIL",
@@ -134,64 +222,66 @@ MARKET_SECTORS = {
     ],
 }
 
-# ---- SIDEBAR: सेटिंग्ज ----
-st.sidebar.header("⚙️ स्कॅनर पॅरामीटर्स")
+# Sidebar
+with st.sidebar:
+  st.markdown("## 🌈 *कंट्रोल सेंटर*")
+  selected_market = st.selectbox(
+      "🎯 इंडेक्स / कमॉडिटी निवडा:", list(MARKET_SECTORS.keys())
+  )
+  selected_stocks = MARKET_SECTORS[selected_market]
 
-selected_market = st.sidebar.selectbox(
-    "📊 इंडेक्स / कमॉडिटी निवडा:", list(MARKET_SECTORS.keys())
+  timeframe = st.select_slider(
+      "⏱️ Timeframe:",
+      options=["1m", "5m", "15m", "1h", "1d"],
+      value="15m",
+  )
+
+  selected_emas = st.multiselect(
+      "📈 EMA इंडिकेटर्स:", [9, 21, 50, 200], default=[9, 21, 50, 200]
+  )
+
+  check_sr = st.checkbox("🎯 Support & Resistance लेव्हल्स", value=True)
+
+  st.markdown("---")
+  st.markdown("### ✈️ Telegram बॉट सेटिंग")
+  tg_token = st.text_input("Bot Token", type="password")
+  tg_chat_id = st.text_input("Chat ID", value="5055029691")
+
+# Main Header
+st.markdown(
+    '<div class="neon-title">⚡ ULTRA MARKET SCREENER</div>',
+    unsafe_allow_html=True,
 )
-selected_stocks = MARKET_SECTORS[selected_market]
-
-timeframe = st.sidebar.selectbox(
-    "⏱️ Timeframe निवडा:",
-    ["1m", "5m", "15m", "1h", "1d"],
-    index=2,  # 15m default
+st.markdown(
+    f'<div class="neon-subtitle">🚀 लाईव्ह मल्टि-ॲसेट स्कॅनिंग • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>',
+    unsafe_allow_html=True,
 )
 
-selected_emas = st.sidebar.multiselect(
-    "📈 EMA इंडिकेटर्स निवडा:",
-    [9, 21, 50, 200],
-    default=[9, 21, 50, 200],
+# 4 Neon Metric Cards
+c1, c2, c3, c4 = st.columns(4)
+c1.markdown(
+    f'<div class="card-pink"><div class="card-val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स</div></div>',
+    unsafe_allow_html=True,
+)
+c2.markdown(
+    f'<div class="card-cyan"><div class="card-val-cyan">{timeframe}</div><div class="card-lbl">टाईमफ्रेम</div></div>',
+    unsafe_allow_html=True,
+)
+c3.markdown(
+    f'<div class="card-purple"><div class="card-val-purple">{len(selected_emas)} EMAs</div><div class="card-lbl">इंडिकेटर्स</div></div>',
+    unsafe_allow_html=True,
+)
+c4.markdown(
+    '<div class="card-green"><div class="card-val-green">24/7 LIVE</div><div class="card-lbl">क्लाउड स्टेटस</div></div>',
+    unsafe_allow_html=True,
 )
 
-check_sr = st.sidebar.checkbox(
-    "🎯 Support & Resistance लेव्हल्स दाखवा", value=True
-)
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("✈️ Telegram अलर्ट सेटिंग")
-tg_token = st.sidebar.text_input(
-    "Bot Token",
-    type="password",
-    value="8799046332:AAEMln5lVcfrnzQ23ymg...",
-)  # तुमचे बरोबर टोकन टाका
-tg_chat_id = st.sidebar.text_input("Chat ID", value="5055029691")
-
-
-def send_telegram(msg):
-  if tg_token and tg_chat_id:
-    url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-    try:
-      requests.post(
-          url,
-          json={"chat_id": tg_chat_id, "text": msg, "parse_mode": "HTML"},
-          timeout=5,
-      )
-    except Exception:
-      pass
-
-
-# ---- MAIN UI ----
-st.title("📊 Multi-Asset Market Screener")
-st.caption(
-    f"सध्या निवडलेले: *{selected_market}* | टाईमफ्रेम: *{timeframe}*"
-)
+st.markdown("<br>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(
-    ["⚡ त्वरित स्कॅन निकाल (Signals)", "🕯️ कॅन्डलस्टिक व S&R चार्ट"]
+    ["⚡ थेट ब्रेकआऊट सिग्नल्स (Live Signals)", "🕯️ मल्टिकलर निऑन चार्ट"]
 )
 
-# डेटा फेच आणि कॅल्क्युलेशन फंक्शन
 period_map = {"1m": "5d", "5m": "10d", "15m": "30d", "1h": "60d", "1d": "1y"}
 
 
@@ -206,11 +296,9 @@ def fetch_and_calculate(symbol, tf):
     if len(df) < 50:
       return None
 
-    # EMA कॅल्क्युलेशन
     for ema in [9, 21, 50, 200]:
       df[f"EMA_{ema}"] = ta.trend.ema_indicator(df["Close"], window=ema)
 
-    # Support & Resistance (मागील २० कँडल्सचा High/Low)
     df["Resistance"] = df["High"].rolling(20).max()
     df["Support"] = df["Low"].rolling(20).min()
     return df
@@ -219,7 +307,7 @@ def fetch_and_calculate(symbol, tf):
 
 
 with tab1:
-  if st.button("🔍 आता त्वरित स्कॅन करा (Instant Scan)"):
+  if st.button("🔥 आता त्वरित स्कॅन करा (Instant Scan)"):
     results = []
     bar = st.progress(0)
 
@@ -235,23 +323,20 @@ with tab1:
       sup_lvl = float(df["Support"].iloc[-2])
 
       signals = []
-
-      # EMA ट्रिगर्स
       for ema in selected_emas:
         if f"EMA_{ema}" in df.columns:
           p_ema = float(df[f"EMA_{ema}"].iloc[-2])
           c_ema = float(df[f"EMA_{ema}"].iloc[-1])
           if p_close <= p_ema and c_close > c_ema:
-            signals.append(f"🟢 Crossed Above {ema} EMA")
+            signals.append(f"🟢 BUY (Above {ema} EMA)")
           elif p_close >= p_ema and c_close < c_ema:
-            signals.append(f"🔴 Crossed Below {ema} EMA")
+            signals.append(f"🔴 SELL (Below {ema} EMA)")
 
-      # Support & Resistance ब्रेकआऊट
       if check_sr:
         if c_close > res_lvl and p_close <= res_lvl:
-          signals.append("🚀 Resistance Breakout")
+          signals.append("🚀 RESISTANCE BREAKOUT")
         elif c_close < sup_lvl and p_close >= sup_lvl:
-          signals.append("⚠️ Support Breakdown")
+          signals.append("⚠️ SUPPORT BREAKDOWN")
 
       if signals:
         clean_name = (
@@ -261,27 +346,28 @@ with tab1:
             .replace("GC=F", "GOLD")
         )
         results.append({
-            "Asset / Stock": clean_name,
-            "CMP (₹)": f"{c_close:.2f}",
-            "Signals": " | ".join(signals),
-            "Support (₹)": f"{sup_lvl:.2f}",
-            "Resistance (₹)": f"{res_lvl:.2f}",
+            "Stock / Asset": clean_name,
+            "CMP (₹)": f"₹{c_close:.2f}",
+            "Technical Signals": "  |  ".join(signals),
+            "Support (₹)": f"₹{sup_lvl:.2f}",
+            "Resistance (₹)": f"₹{res_lvl:.2f}",
         })
 
+    bar.empty()
     if results:
       res_df = pd.DataFrame(results)
-      st.success(f"🎯 एकूण {len(results)} सिग्नल्स सापडले!")
-      st.dataframe(res_df, use_container_width=True)
+      st.success(f"🎉 एकूण {len(results)} शेअर्समध्ये धमाकेदार सिग्नल्स मिळाले!")
+      st.dataframe(res_df, use_container_width=True, hide_index=True)
     else:
-      st.info("या टाईमफ्रेमवर सध्या कोणताही नवीन सिग्नल मिळालेला नाही.")
+      st.info("या टाइमफ्रेमवर सध्या कोणताही नवीन सिग्नल उपलब्ध नाही.")
 
 with tab2:
-  chart_sym = st.selectbox("शेअर/कमॉडिटी निवडा:", selected_stocks)
+  chart_sym = st.selectbox("📊 विश्लेषणासाठी शेअर निवडा:", selected_stocks)
   df_chart = fetch_and_calculate(chart_sym, timeframe)
 
   if df_chart is not None:
     fig = go.Figure()
-    # Candlestick
+    # Neon Style Candlestick
     fig.add_trace(
         go.Candlestick(
             x=df_chart.index,
@@ -289,12 +375,20 @@ with tab2:
             high=df_chart["High"],
             low=df_chart["Low"],
             close=df_chart["Close"],
-            name="Price",
+            name="कँडल्स",
+            increasing_line_color="#00FF88",
+            decreasing_line_color="#FF0055",
         )
     )
 
-    # Selected EMAs
-    colors = {9: "orange", 21: "blue", 50: "purple", 200: "red"}
+    # Vibrant Indicator Lines
+    ema_colors = {
+        9: "#FFE600",  # Bright Yellow
+        21: "#00F0FF",  # Bright Cyan
+        50: "#FF00AA",  # Bright Pink/Magenta
+        200: "#B026FF",  # Bright Purple
+    }
+
     for ema in selected_emas:
       if f"EMA_{ema}" in df_chart.columns:
         fig.add_trace(
@@ -302,30 +396,34 @@ with tab2:
                 x=df_chart.index,
                 y=df_chart[f"EMA_{ema}"],
                 name=f"EMA {ema}",
-                line=dict(color=colors.get(ema, "black"), width=1.5),
+                line=dict(color=ema_colors.get(ema, "#FFFFFF"), width=2),
             )
         )
 
-    # Support & Resistance Lines
     if check_sr:
       latest_res = df_chart["Resistance"].iloc[-1]
       latest_sup = df_chart["Support"].iloc[-1]
       fig.add_hline(
           y=latest_res,
           line_dash="dash",
-          line_color="green",
-          annotation_text=f"Resistance: {latest_res:.2f}",
+          line_color="#00E5FF",
+          annotation_text=f"Res: ₹{latest_res:.2f}",
+          annotation_font_color="#00E5FF",
       )
       fig.add_hline(
           y=latest_sup,
           line_dash="dash",
-          line_color="red",
-          annotation_text=f"Support: {latest_sup:.2f}",
+          line_color="#FF3366",
+          annotation_text=f"Sup: ₹{latest_sup:.2f}",
+          annotation_font_color="#FF3366",
       )
 
     fig.update_layout(
-        title=f"{chart_sym} Technical Chart",
+        template="plotly_dark",
+        plot_bgcolor="#0d1117",
+        paper_bgcolor="#0d1117",
         xaxis_rangeslider_visible=False,
-        height=550,
+        height=580,
+        margin=dict(l=10, r=10, t=30, b=10),
     )
     st.plotly_chart(fig, use_container_width=True)
