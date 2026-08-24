@@ -25,19 +25,53 @@ st.markdown(
         color: #e6edf3;
     }
     
-    /* Glowing Neon Title Under Photo */
+    /* Branding Header Box */
+    .branding-box {
+        text-align: center;
+        margin-top: 10px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* Top Name: BALAJI / MARKET ANALYSER */
     .neon-market-analyser {
         background: linear-gradient(135deg, #00F0FF 0%, #9D00FF 50%, #FF007A 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 2.8rem;
+        font-size: 2.6rem;
         font-weight: 900;
         text-align: center;
         text-shadow: 0 0 25px rgba(0, 240, 255, 0.45);
-        margin-top: 10px;
+        letter-spacing: 3px;
         margin-bottom: 2px;
-        letter-spacing: 2px;
+        line-height: 1.2;
     }
+
+    /* Extra Wide & Extended HULGUNDE */
+    .neon-hulgunde-extended {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 580px; /* वरच्या नावापेक्षा जास्त रुंद पसरवण्यासाठी */
+        margin-top: 5px;
+        margin-bottom: 15px;
+        font-size: 2.2rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 6px;
+    }
+
+    .h-pink   { color: #FF007A; text-shadow: 0 0 15px #FF007A; }
+    .h-orange { color: #FF7700; text-shadow: 0 0 15px #FF7700; }
+    .h-yellow { color: #FFE600; text-shadow: 0 0 15px #FFE600; }
+    .h-green  { color: #00FF88; text-shadow: 0 0 15px #00FF88; }
+    .h-cyan   { color: #00F0FF; text-shadow: 0 0 15px #00F0FF; }
+    .h-purple { color: #9D00FF; text-shadow: 0 0 15px #9D00FF; }
+    .h-magenta{ color: #FF00D4; text-shadow: 0 0 15px #FF00D4; }
+    .h-blue   { color: #388BFD; text-shadow: 0 0 15px #388BFD; }
+
     .neon-subtitle-center {
         color: #58a6ff;
         font-size: 1rem;
@@ -87,7 +121,7 @@ st.markdown(
     .val-green { font-size: 1.8rem; font-weight: 800; color: #00FF88; }
     .card-lbl { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
 
-    /* Animated Multi-Gradient Neon Glow Button */
+    /* Animated Button */
     div.stButton > button:first-child {
         background: linear-gradient(90deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
         color: #ffffff;
@@ -236,7 +270,6 @@ with st.sidebar:
   )
   selected_stocks = MARKET_SECTORS[selected_market]
 
-  # Glowing Yellow Timeframe Label
   st.markdown(
       '<span class="yellow-glow-label">⏱️ Timeframe</span>',
       unsafe_allow_html=True,
@@ -248,7 +281,6 @@ with st.sidebar:
       label_visibility="collapsed",
   )
 
-  # Glowing Yellow EMA Indicators Label
   st.markdown(
       '<span class="yellow-glow-label">📈 EMA Indicators</span>',
       unsafe_allow_html=True,
@@ -260,7 +292,6 @@ with st.sidebar:
       label_visibility="collapsed",
   )
 
-  # Glowing Yellow Support & Resistance Label
   st.markdown(
       '<span class="yellow-glow-label">🎯 Support & Resistance</span>',
       unsafe_allow_html=True,
@@ -276,16 +307,31 @@ with st.sidebar:
   )
   tg_chat_id = st.text_input("Chat ID", value="5055029691")
 
-# ---- CENTER HEADER: PHOTO FIRST, GLOWING NAME UNDERNEATH ----
-h_col1, h_col2, h_col3 = st.columns([1.2, 2, 1.2])
+# ---- CENTER HEADER: PHOTO FIRST, GLOWING MARKET ANALYSER + WIDE MULTI-COLOUR HULGUNDE ----
+h_col1, h_col2, h_col3 = st.columns([1, 2.2, 1])
 with h_col2:
   if os.path.exists("logo.png"):
     st.image("logo.png", use_container_width=True)
 
 st.markdown(
-    '<div class="neon-market-analyser">MARKET ANALYSER</div>',
+    """
+<div class="branding-box">
+    <div class="neon-market-analyser">MARKET ANALYSER</div>
+    <div class="neon-hulgunde-extended">
+        <span class="h-pink">H</span>
+        <span class="h-orange">U</span>
+        <span class="h-yellow">L</span>
+        <span class="h-green">G</span>
+        <span class="h-cyan">U</span>
+        <span class="h-blue">N</span>
+        <span class="h-purple">D</span>
+        <span class="h-magenta">E</span>
+    </div>
+</div>
+""",
     unsafe_allow_html=True,
 )
+
 st.markdown(
     f'<div class="neon-subtitle-center">🚀 लाईव्ह मल्टि-ॲसेट ॲनालिसिस • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>',
     unsafe_allow_html=True,
