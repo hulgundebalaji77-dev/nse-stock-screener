@@ -41,7 +41,17 @@ st.markdown(
         margin-bottom: 24px;
     }
 
-    /* Vibrant Glossy Border Metric Cards */
+    /* Vibrant Yellow Glowing Labels for Sidebar */
+    .yellow-glow-label {
+        color: #FFE600 !important;
+        font-size: 1.05rem !important;
+        font-weight: 800 !important;
+        text-shadow: 0 0 10px rgba(255, 230, 0, 0.6) !important;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    /* Metric Cards */
     .card-pink {
         background: linear-gradient(135deg, #1b0c1e 0%, #2f0d2c 100%);
         border: 2px solid #FF007A;
@@ -56,7 +66,7 @@ st.markdown(
         border-radius: 12px;
         padding: 14px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(255, 230, 0, 0.35);
+        box-shadow: 0 0 18px rgba(255, 230, 0, 0.4);
     }
     .card-green {
         background: linear-gradient(135deg, #091f14 0%, #0e331f 100%);
@@ -68,7 +78,7 @@ st.markdown(
     }
     
     .val-pink { font-size: 1.8rem; font-weight: 800; color: #FF66B2; }
-    .val-yellow { font-size: 1.8rem; font-weight: 800; color: #FFE600; text-shadow: 0 0 10px rgba(255, 230, 0, 0.5); }
+    .val-yellow { font-size: 1.8rem; font-weight: 800; color: #FFE600; text-shadow: 0 0 12px rgba(255, 230, 0, 0.6); }
     .val-green { font-size: 1.8rem; font-weight: 800; color: #00FF88; }
     .card-lbl { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
 
@@ -94,7 +104,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---- ASSETS DATA (Updated Commodities) ----
+# ---- ASSETS DATA ----
 MARKET_SECTORS = {
     "🔥 NIFTY 50": [
         "ADANIENT.NS",
@@ -218,17 +228,36 @@ with st.sidebar:
   )
   selected_stocks = MARKET_SECTORS[selected_market]
 
+  # Glowing Yellow Timeframe Label
+  st.markdown(
+      '<span class="yellow-glow-label">⏱️ Timeframe</span>',
+      unsafe_allow_html=True,
+  )
   timeframe = st.select_slider(
-      "⏱️ Timeframe:",
+      "Timeframe Selector",
       options=["1m", "5m", "15m", "1h", "1d"],
       value="15m",
+      label_visibility="collapsed",
   )
 
+  # Glowing Yellow EMA Indicators Label
+  st.markdown(
+      '<span class="yellow-glow-label">📈 EMA Indicators</span>',
+      unsafe_allow_html=True,
+  )
   selected_emas = st.multiselect(
-      "📈 EMA इंडिकेटर्स:", [9, 21, 50, 200], default=[9, 21, 50, 200]
+      "EMA Selector",
+      [9, 21, 50, 200],
+      default=[9, 21, 50, 200],
+      label_visibility="collapsed",
   )
 
-  check_sr = st.checkbox("🎯 Support & Resistance लेव्हल्स", value=True)
+  # Glowing Yellow Support & Resistance Label
+  st.markdown(
+      '<span class="yellow-glow-label">🎯 Support & Resistance</span>',
+      unsafe_allow_html=True,
+  )
+  check_sr = st.checkbox("Support & Resistance लेव्हल्स दाखवा", value=True)
 
   st.markdown("---")
   st.markdown("### ✈️ Telegram बॉट सेटिंग")
@@ -249,7 +278,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4 Stat Metric Cards (Timeframe & Indicators in YELLOW)
+# 4 Stat Metric Cards
 c1, c2, c3, c4 = st.columns(4)
 c1.markdown(
     f'<div class="card-pink"><div class="val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स / कमॉडिटी</div></div>',
