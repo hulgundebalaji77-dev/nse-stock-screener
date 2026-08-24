@@ -41,7 +41,7 @@ st.markdown(
         margin-bottom: 24px;
     }
 
-    /* 2. Four Vibrant Glossy Border Metric Cards */
+    /* Vibrant Glossy Border Metric Cards */
     .card-pink {
         background: linear-gradient(135deg, #1b0c1e 0%, #2f0d2c 100%);
         border: 2px solid #FF007A;
@@ -50,21 +50,13 @@ st.markdown(
         text-align: center;
         box-shadow: 0 0 15px rgba(255, 0, 122, 0.3);
     }
-    .card-cyan {
-        background: linear-gradient(135deg, #071924 0%, #0b2b3b 100%);
-        border: 2px solid #00F0FF;
+    .card-yellow {
+        background: linear-gradient(135deg, #241d08 0%, #3d310c 100%);
+        border: 2px solid #FFE600;
         border-radius: 12px;
         padding: 14px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
-    }
-    .card-purple {
-        background: linear-gradient(135deg, #160c29 0%, #221240 100%);
-        border: 2px solid #9D00FF;
-        border-radius: 12px;
-        padding: 14px;
-        text-align: center;
-        box-shadow: 0 0 15px rgba(157, 0, 255, 0.3);
+        box-shadow: 0 0 15px rgba(255, 230, 0, 0.35);
     }
     .card-green {
         background: linear-gradient(135deg, #091f14 0%, #0e331f 100%);
@@ -76,12 +68,11 @@ st.markdown(
     }
     
     .val-pink { font-size: 1.8rem; font-weight: 800; color: #FF66B2; }
-    .val-cyan { font-size: 1.8rem; font-weight: 800; color: #00F0FF; }
-    .val-purple { font-size: 1.8rem; font-weight: 800; color: #D182FF; }
+    .val-yellow { font-size: 1.8rem; font-weight: 800; color: #FFE600; text-shadow: 0 0 10px rgba(255, 230, 0, 0.5); }
     .val-green { font-size: 1.8rem; font-weight: 800; color: #00FF88; }
     .card-lbl { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
 
-    /* 3. Animated Multi-Gradient Neon Glow Button */
+    /* Animated Multi-Gradient Neon Glow Button */
     div.stButton > button:first-child {
         background: linear-gradient(90deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
         color: #ffffff;
@@ -103,7 +94,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---- ASSETS DATA ----
+# ---- ASSETS DATA (Updated Commodities) ----
 MARKET_SECTORS = {
     "🔥 NIFTY 50": [
         "ADANIENT.NS",
@@ -216,13 +207,7 @@ MARKET_SECTORS = {
         "BAJAJFINSV.BO",
         "HCLTECH.BO",
     ],
-    "🛢️ COMMODITY (Crude & Gold)": [
-        "CL=F",
-        "GC=F",
-        "MCX:CRUDEOIL",
-        "MCX:GOLD",
-        "GOLDBEES.NS",
-    ],
+    "🛢️ TOP COMMODITIES (Crude Oil & Gold)": ["CL=F", "GC=F", "GOLDBEES.NS"],
 }
 
 # Sidebar Parameters
@@ -264,22 +249,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 4 Stat Metric Cards
+# 4 Stat Metric Cards (Timeframe & Indicators in YELLOW)
 c1, c2, c3, c4 = st.columns(4)
 c1.markdown(
-    f'<div class="card-pink"><div class="val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स</div></div>',
+    f'<div class="card-pink"><div class="val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स / कमॉडिटी</div></div>',
     unsafe_allow_html=True,
 )
 c2.markdown(
-    f'<div class="card-cyan"><div class="val-cyan">{timeframe}</div><div class="card-lbl">टाइमफ्रेम</div></div>',
+    f'<div class="card-yellow"><div class="val-yellow">{timeframe}</div><div class="card-lbl">Timeframe</div></div>',
     unsafe_allow_html=True,
 )
 c3.markdown(
-    f'<div class="card-purple"><div class="val-purple">{len(selected_emas)} EMAs</div><div class="card-lbl">इंडिकेटर्स</div></div>',
+    f'<div class="card-yellow"><div class="val-yellow">{len(selected_emas)} EMAs</div><div class="card-lbl">Indicators</div></div>',
     unsafe_allow_html=True,
 )
 c4.markdown(
-    '<div class="card-green"><div class="val-green">24/7 LIVE</div><div class="card-lbl">ऑटोमेशन</div></div>',
+    '<div class="card-green"><div class="val-green">24/7 LIVE</div><div class="card-lbl">ऑटोमेशन स्टेटस</div></div>',
     unsafe_allow_html=True,
 )
 
@@ -353,7 +338,7 @@ with tab1:
             .replace("GC=F", "GOLD")
         )
         results.append({
-            "Stock / Asset": clean_name,
+            "Stock / Commodity": clean_name,
             "CMP (₹)": f"₹{c_close:.2f}",
             "Technical Signals": "  |  ".join(signals),
             "Support (₹)": f"₹{sup_lvl:.2f}",
@@ -363,19 +348,18 @@ with tab1:
     bar.empty()
     if results:
       res_df = pd.DataFrame(results)
-      st.success(f"🎉 एकूण {len(results)} शेअर्समध्ये धमाकेदार सिग्नल्स मिळाले!")
+      st.success(f"🎉 एकूण {len(results)} शेअर्स/कमॉडिटीमध्ये सिग्नल्स मिळाले!")
       st.dataframe(res_df, use_container_width=True, hide_index=True)
     else:
       st.info("या टाइमफ्रेमवर सध्या कोणताही नवीन सिग्नल उपलब्ध नाही.")
 
 with tab2:
-  chart_sym = st.selectbox("📊 विश्लेषणासाठी शेअर निवडा:", selected_stocks)
+  chart_sym = st.selectbox("📊 विश्लेषणासाठी निवडा:", selected_stocks)
   df_chart = fetch_and_calculate(chart_sym, timeframe)
 
   if df_chart is not None:
     fig = go.Figure()
 
-    # 4. Neon Candlestick Colors: Green (#00FF88) & Red (#FF0055)
     fig.add_trace(
         go.Candlestick(
             x=df_chart.index,
@@ -389,12 +373,11 @@ with tab2:
         )
     )
 
-    # 4. Indicator Colors: 9 EMA (Yellow), 21 EMA (Cyan), 50 EMA (Magenta Pink), 200 EMA (Violet Purple)
     ema_colors = {
-        9: "#FFE600",  # पिवळा
-        21: "#00F0FF",  # सायन निळा
-        50: "#FF00AA",  # मॅजेन्टा पिंक
-        200: "#9D00FF",  # व्हायलेट पर्पल
+        9: "#FFE600",
+        21: "#00F0FF",
+        50: "#FF00AA",
+        200: "#9D00FF",
     }
 
     for ema in selected_emas:
