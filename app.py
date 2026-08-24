@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 import pandas as pd
 import plotly.graph_objects as go
@@ -8,7 +9,7 @@ import yfinance as yf
 
 # ---- PAGE CONFIGURATION ----
 st.set_page_config(
-    page_title="NEON PRO Market Screener",
+    page_title="Market Analyser",
     layout="wide",
     page_icon="⚡",
     initial_sidebar_state="expanded",
@@ -24,24 +25,28 @@ st.markdown(
         color: #e6edf3;
     }
     
-    /* 1. Pink-Purple-Cyan Gradient Title */
-    .neon-title {
-        background: linear-gradient(135deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
+    /* Glowing Neon Title Under Photo */
+    .neon-market-analyser {
+        background: linear-gradient(135deg, #00F0FF 0%, #9D00FF 50%, #FF007A 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 2.6rem;
+        font-size: 2.8rem;
         font-weight: 900;
-        text-shadow: 0 0 25px rgba(0, 240, 255, 0.3);
+        text-align: center;
+        text-shadow: 0 0 25px rgba(0, 240, 255, 0.45);
+        margin-top: 10px;
         margin-bottom: 2px;
+        letter-spacing: 2px;
     }
-    .neon-subtitle {
+    .neon-subtitle-center {
         color: #58a6ff;
-        font-size: 0.95rem;
+        font-size: 1rem;
         font-weight: 500;
-        margin-bottom: 24px;
+        text-align: center;
+        margin-bottom: 25px;
     }
 
-    /* Vibrant Yellow Glowing Labels for Sidebar */
+    /* Glowing Yellow Labels for Sidebar */
     .yellow-glow-label {
         color: #FFE600 !important;
         font-size: 1.05rem !important;
@@ -222,6 +227,9 @@ MARKET_SECTORS = {
 
 # Sidebar Parameters
 with st.sidebar:
+  if os.path.exists("logo.png"):
+    st.image("logo.png", use_container_width=True)
+
   st.markdown("## 🌈 *कंट्रोल सेंटर*")
   selected_market = st.selectbox(
       "🎯 इंडेक्स / कमॉडिटी निवडा:", list(MARKET_SECTORS.keys())
@@ -268,13 +276,18 @@ with st.sidebar:
   )
   tg_chat_id = st.text_input("Chat ID", value="5055029691")
 
-# Main Header
+# ---- CENTER HEADER: PHOTO FIRST, GLOWING NAME UNDERNEATH ----
+h_col1, h_col2, h_col3 = st.columns([1.2, 2, 1.2])
+with h_col2:
+  if os.path.exists("logo.png"):
+    st.image("logo.png", use_container_width=True)
+
 st.markdown(
-    '<div class="neon-title">⚡ ULTRA MARKET SCREENER</div>',
+    '<div class="neon-market-analyser">MARKET ANALYSER</div>',
     unsafe_allow_html=True,
 )
 st.markdown(
-    f'<div class="neon-subtitle">🚀 लाईव्ह मल्टि-ॲसेट स्कॅनर • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>',
+    f'<div class="neon-subtitle-center">🚀 लाईव्ह मल्टि-ॲसेट ॲनालिसिस • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>',
     unsafe_allow_html=True,
 )
 
