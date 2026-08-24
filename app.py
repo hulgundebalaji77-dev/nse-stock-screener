@@ -6,94 +6,96 @@ import streamlit as st
 import ta
 import yfinance as yf
 
+# ---- PAGE CONFIGURATION ----
 st.set_page_config(
     page_title="NEON PRO Market Screener",
     layout="wide",
-    page_icon="🔥",
+    page_icon="⚡",
     initial_sidebar_state="expanded",
 )
 
-# ---- ULTRA COLOURFUL NEON CSS STYLING ----
+# ---- ULTRA VIBRANT NEON CSS ----
 st.markdown(
     """
 <style>
-    /* Dark Neon Background Glow */
+    /* Dark Background */
     .stApp {
-        background-color: #0d1117;
+        background-color: #0b0e14;
+        color: #e6edf3;
     }
     
-    /* Neon Gradient Title */
+    /* 1. Pink-Purple-Cyan Gradient Title */
     .neon-title {
-        background: linear-gradient(135deg, #FF007A 0%, #7928CA 40%, #00F0FF 100%);
+        background: linear-gradient(135deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-size: 2.6rem;
         font-weight: 900;
-        text-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
-        margin-bottom: 0px;
+        text-shadow: 0 0 25px rgba(0, 240, 255, 0.3);
+        margin-bottom: 2px;
     }
     .neon-subtitle {
         color: #58a6ff;
-        font-size: 1rem;
+        font-size: 0.95rem;
         font-weight: 500;
-        margin-bottom: 25px;
+        margin-bottom: 24px;
     }
 
-    /* Colourful Vibrant Cards */
+    /* 2. Four Vibrant Glossy Border Metric Cards */
     .card-pink {
-        background: linear-gradient(135deg, #1f1024 0%, #3b1238 100%);
-        border: 1.5px solid #ff2a85;
+        background: linear-gradient(135deg, #1b0c1e 0%, #2f0d2c 100%);
+        border: 2px solid #FF007A;
         border-radius: 12px;
-        padding: 16px;
+        padding: 14px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(255, 42, 133, 0.25);
+        box-shadow: 0 0 15px rgba(255, 0, 122, 0.3);
     }
     .card-cyan {
-        background: linear-gradient(135deg, #091f2c 0%, #0c3345 100%);
-        border: 1.5px solid #00f0ff;
+        background: linear-gradient(135deg, #071924 0%, #0b2b3b 100%);
+        border: 2px solid #00F0FF;
         border-radius: 12px;
-        padding: 16px;
+        padding: 14px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
     }
     .card-purple {
-        background: linear-gradient(135deg, #17102b 0%, #291a4d 100%);
-        border: 1.5px solid #a855f7;
+        background: linear-gradient(135deg, #160c29 0%, #221240 100%);
+        border: 2px solid #9D00FF;
         border-radius: 12px;
-        padding: 16px;
+        padding: 14px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
+        box-shadow: 0 0 15px rgba(157, 0, 255, 0.3);
     }
     .card-green {
-        background: linear-gradient(135deg, #0d2417 0%, #103d22 100%);
-        border: 1.5px solid #00ff88;
+        background: linear-gradient(135deg, #091f14 0%, #0e331f 100%);
+        border: 2px solid #00FF88;
         border-radius: 12px;
-        padding: 16px;
+        padding: 14px;
         text-align: center;
-        box-shadow: 0 0 15px rgba(0, 255, 136, 0.25);
+        box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
     }
     
-    .card-val-pink { font-size: 1.8rem; font-weight: 800; color: #ff66b2; }
-    .card-val-cyan { font-size: 1.8rem; font-weight: 800; color: #38ef7d; }
-    .card-val-purple { font-size: 1.8rem; font-weight: 800; color: #c084fc; }
-    .card-val-green { font-size: 1.8rem; font-weight: 800; color: #00ff88; }
-    .card-lbl { color: #c9d1d9; font-size: 0.85rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
+    .val-pink { font-size: 1.8rem; font-weight: 800; color: #FF66B2; }
+    .val-cyan { font-size: 1.8rem; font-weight: 800; color: #00F0FF; }
+    .val-purple { font-size: 1.8rem; font-weight: 800; color: #D182FF; }
+    .val-green { font-size: 1.8rem; font-weight: 800; color: #00FF88; }
+    .card-lbl { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
 
-    /* Glowing Multi-colour Scan Button */
+    /* 3. Animated Multi-Gradient Neon Glow Button */
     div.stButton > button:first-child {
-        background: linear-gradient(90deg, #ff007a 0%, #7928ca 50%, #00f0ff 100%);
+        background: linear-gradient(90deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
         color: #ffffff;
         font-weight: 800;
-        font-size: 1.1rem;
-        border-radius: 12px;
+        font-size: 1.05rem;
+        border-radius: 10px;
         border: none;
-        padding: 0.75rem 2.5rem;
-        box-shadow: 0 0 20px rgba(255, 0, 122, 0.5);
-        transition: all 0.3s ease-in-out;
+        padding: 0.7rem 2.2rem;
+        box-shadow: 0 0 20px rgba(255, 0, 122, 0.45);
+        transition: all 0.3s ease;
     }
     div.stButton > button:first-child:hover {
-        transform: scale(1.02);
-        box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
         color: #ffffff;
     }
 </style>
@@ -101,6 +103,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ---- ASSETS DATA ----
 MARKET_SECTORS = {
     "🔥 NIFTY 50": [
         "ADANIENT.NS",
@@ -222,7 +225,7 @@ MARKET_SECTORS = {
     ],
 }
 
-# Sidebar
+# Sidebar Parameters
 with st.sidebar:
   st.markdown("## 🌈 *कंट्रोल सेंटर*")
   selected_market = st.selectbox(
@@ -244,7 +247,11 @@ with st.sidebar:
 
   st.markdown("---")
   st.markdown("### ✈️ Telegram बॉट सेटिंग")
-  tg_token = st.text_input("Bot Token", type="password")
+  tg_token = st.text_input(
+      "Bot Token",
+      value="8799046332:AAEMln5IVcfrnzQ23ymgbGlTAN0Dktw--rM",
+      type="password",
+  )
   tg_chat_id = st.text_input("Chat ID", value="5055029691")
 
 # Main Header
@@ -253,26 +260,26 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    f'<div class="neon-subtitle">🚀 लाईव्ह मल्टि-ॲसेट स्कॅनिंग • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>',
+    f'<div class="neon-subtitle">🚀 लाईव्ह मल्टि-ॲसेट स्कॅनर • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>',
     unsafe_allow_html=True,
 )
 
-# 4 Neon Metric Cards
+# 4 Stat Metric Cards
 c1, c2, c3, c4 = st.columns(4)
 c1.markdown(
-    f'<div class="card-pink"><div class="card-val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स</div></div>',
+    f'<div class="card-pink"><div class="val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स</div></div>',
     unsafe_allow_html=True,
 )
 c2.markdown(
-    f'<div class="card-cyan"><div class="card-val-cyan">{timeframe}</div><div class="card-lbl">टाईमफ्रेम</div></div>',
+    f'<div class="card-cyan"><div class="val-cyan">{timeframe}</div><div class="card-lbl">टाइमफ्रेम</div></div>',
     unsafe_allow_html=True,
 )
 c3.markdown(
-    f'<div class="card-purple"><div class="card-val-purple">{len(selected_emas)} EMAs</div><div class="card-lbl">इंडिकेटर्स</div></div>',
+    f'<div class="card-purple"><div class="val-purple">{len(selected_emas)} EMAs</div><div class="card-lbl">इंडिकेटर्स</div></div>',
     unsafe_allow_html=True,
 )
 c4.markdown(
-    '<div class="card-green"><div class="card-val-green">24/7 LIVE</div><div class="card-lbl">क्लाउड स्टेटस</div></div>',
+    '<div class="card-green"><div class="val-green">24/7 LIVE</div><div class="card-lbl">ऑटोमेशन</div></div>',
     unsafe_allow_html=True,
 )
 
@@ -367,7 +374,8 @@ with tab2:
 
   if df_chart is not None:
     fig = go.Figure()
-    # Neon Style Candlestick
+
+    # 4. Neon Candlestick Colors: Green (#00FF88) & Red (#FF0055)
     fig.add_trace(
         go.Candlestick(
             x=df_chart.index,
@@ -381,12 +389,12 @@ with tab2:
         )
     )
 
-    # Vibrant Indicator Lines
+    # 4. Indicator Colors: 9 EMA (Yellow), 21 EMA (Cyan), 50 EMA (Magenta Pink), 200 EMA (Violet Purple)
     ema_colors = {
-        9: "#FFE600",  # Bright Yellow
-        21: "#00F0FF",  # Bright Cyan
-        50: "#FF00AA",  # Bright Pink/Magenta
-        200: "#B026FF",  # Bright Purple
+        9: "#FFE600",  # पिवळा
+        21: "#00F0FF",  # सायन निळा
+        50: "#FF00AA",  # मॅजेन्टा पिंक
+        200: "#9D00FF",  # व्हायलेट पर्पल
     }
 
     for ema in selected_emas:
@@ -406,22 +414,22 @@ with tab2:
       fig.add_hline(
           y=latest_res,
           line_dash="dash",
-          line_color="#00E5FF",
+          line_color="#00F0FF",
           annotation_text=f"Res: ₹{latest_res:.2f}",
-          annotation_font_color="#00E5FF",
+          annotation_font_color="#00F0FF",
       )
       fig.add_hline(
           y=latest_sup,
           line_dash="dash",
-          line_color="#FF3366",
+          line_color="#FF007A",
           annotation_text=f"Sup: ₹{latest_sup:.2f}",
-          annotation_font_color="#FF3366",
+          annotation_font_color="#FF007A",
       )
 
     fig.update_layout(
         template="plotly_dark",
-        plot_bgcolor="#0d1117",
-        paper_bgcolor="#0d1117",
+        plot_bgcolor="#0b0e14",
+        paper_bgcolor="#0b0e14",
         xaxis_rangeslider_visible=False,
         height=580,
         margin=dict(l=10, r=10, t=30, b=10),
