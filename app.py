@@ -205,9 +205,12 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### ✈️ Telegram बॉट सेटिंग")
-    tg_token = st.text_input("Bot Token", value="8799046332:AAEMln5IVcfrnzQ23ymgbGlTAN0Dktw--rM", type="password")
-    tg_chat_id = st.text_input("Chat ID", value="5055029691")
-
+    tg_token = st.text_input(
+    "Bot Token",
+    value="8799046332:AAHzWmvR1ZWJ-7ARzWgybFu-6Ykl7Trdt2k",
+    type="password",
+)
+tg_chat_id = st.text_input("Chat ID", value="5055029691")
 # ---- CENTER HEADER: PHOTO FIRST, HULGUNDE ON TOP, MARKET ANALYSER UNDERNEATH ----
 h_col1, h_col2, h_col3 = st.columns([1, 2.2, 1])
 with h_col2:
