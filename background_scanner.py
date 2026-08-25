@@ -6,9 +6,8 @@ import ta
 import yfinance as yf
 
 # तुमचे अचूक Telegram डिटेल्स
-TG_TOKEN = "तुमचे_TELEGRAM_BOT_TOKEN"
+TG_TOKEN = "8799046332:AAHzWmvR1ZWJ-7ARzWgybFu-6Ykl7Trdt2k"
 TG_CHAT_ID = "5055029691"
-
 # सर्व इंडेक्स, शेअर्स आणि कमॉडिटी एकत्र
 WATCHLIST = [
     # NIFTY 50 & BANKNIFTY & FINNIFTY Major Stocks
