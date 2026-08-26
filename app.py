@@ -141,7 +141,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---- मार्केट डेटा सूची (Nifty 50 आणि इतर इंडेक्ससह) ----
+# ---- मार्केट डेटा सूची ----
 MARKET_SECTORS = {
     "🎯 NIFTY 50 INDEX / OPTIONS (SPOT)": [
         "^NSEI", "NIFTYBEES.NS", "^NSEBANK"
@@ -201,10 +201,18 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### ✈️ Telegram बॉट सेटिंग")
-    tg_token = st.text_input("Bot Token", value=os.getenv("TG_BOT_TOKEN", ""), type="password")
-    tg_chat_id = st.text_input("Chat ID", value=os.getenv("TG_CHAT_ID", ""))
-    send_tg_alerts = st.checkbox("सिग्नल्स Telegram वर पाठवा", value=False)
+    tg_token = st.text_input(
+        "Bot Token",
+        value="8799046332:AAHzWmvR1ZWJ-7ARzWgybFu-6Ykl7Trdt2k",
+        type="password"
+    )
+    tg_chat_id = st.text_input(
+        "Chat ID",
+        value="5055029691"
+    )
+    send_tg_alerts = st.checkbox("सिग्नल्स Telegram वर पाठवा", value=True)
 
+# Telegram अलर्ट पाठवणारे फंक्शन
 def send_telegram_message(token, chat_id, text):
     if not token or not chat_id:
         return
@@ -248,7 +256,6 @@ c4.markdown('<div class="card-green"><div class="val-green">24/7 LIVE</div><div 
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# टॅब्सची पुनर्रचना (Option Chain टॅब जोडला)
 tab1, tab2, tab3 = st.tabs(["⚡ थेट ब्रेकआऊट सिग्नल्स (Live Signals)", "🕯️ मल्टिकलर निऑन चार्ट", "🎯 Nifty 50 Option Chain"])
 
 period_map = {"1m": "5d", "5m": "10d", "15m": "30d", "1h": "60d", "1d": "1y"}
