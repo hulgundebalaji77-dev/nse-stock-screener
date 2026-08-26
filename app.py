@@ -1,5 +1,5 @@
-import os
 from datetime import datetime
+import os
 import pandas as pd
 import plotly.graph_objects as go
 import requests
@@ -7,7 +7,7 @@ import streamlit as st
 import ta
 import yfinance as yf
 
-# ---- PAGE CONFIGURATION ----
+# ---- पेज कॉन्फिगरेशन ----
 st.set_page_config(
     page_title="Market Analyser",
     layout="wide",
@@ -15,17 +15,15 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ---- ULTRA VIBRANT NEON CSS (PURE BLACK THEME) ----
+# ---- अल्ट्रा व्हायब्रंट निऑन CSS (प्युअर ब्लॅक थीम) ----
 st.markdown(
     """
 <style>
-    /* Pure Black Dark Background */
     .stApp {
         background-color: #05070a;
         color: #e6edf3;
     }
     
-    /* Branding Header Box */
     .branding-box {
         text-align: center;
         margin-top: 10px;
@@ -39,7 +37,6 @@ st.markdown(
         border: 1px solid #1f242c;
     }
 
-    /* Top Name: HULGUNDE (Extra Wide & Extended Multi-Colour) */
     .neon-hulgunde-extended {
         display: flex;
         justify-content: space-between;
@@ -62,7 +59,6 @@ st.markdown(
     .h-purple { color: #9D00FF; text-shadow: 0 0 15px #9D00FF; }
     .h-magenta{ color: #FF00D4; text-shadow: 0 0 15px #FF00D4; }
 
-    /* Bottom Name: MARKET ANALYSER */
     .neon-market-analyser {
         background: linear-gradient(135deg, #00F0FF 0%, #9D00FF 50%, #FF007A 100%);
         -webkit-background-clip: text;
@@ -85,7 +81,6 @@ st.markdown(
         margin-bottom: 25px;
     }
 
-    /* Glowing Yellow Labels for Sidebar */
     .yellow-glow-label {
         color: #FFE600 !important;
         font-size: 1.05rem !important;
@@ -95,7 +90,6 @@ st.markdown(
         display: block;
     }
 
-    /* Metric Cards */
     .card-pink {
         background: linear-gradient(135deg, #160718 0%, #240822 100%);
         border: 2px solid #FF007A;
@@ -126,7 +120,6 @@ st.markdown(
     .val-green { font-size: 1.8rem; font-weight: 800; color: #00FF88; }
     .card-lbl { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
 
-    /* Animated Button */
     div.stButton > button:first-child {
         background: linear-gradient(90deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
         color: #ffffff;
@@ -139,7 +132,7 @@ st.markdown(
         transition: all 0.3s ease;
     }
     div.stButton > button:first-child:hover {
-        transform: translateY(-2px scale(1.01));
+        transform: translateY(-2px) scale(1.01);
         box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
         color: #ffffff;
     }
@@ -148,9 +141,12 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ---- ASSETS DATA ----
+# ---- मार्केट डेटा सूची (Nifty 50 आणि इतर इंडेक्ससह) ----
 MARKET_SECTORS = {
-    "🔥 NIFTY 50": [
+    "🎯 NIFTY 50 INDEX / OPTIONS (SPOT)": [
+        "^NSEI", "NIFTYBEES.NS", "^NSEBANK"
+    ],
+    "🔥 NIFTY 50 EQUITIES": [
         "ADANIENT.NS", "ADANIPORTS.NS", "APOLLOHOSP.NS", "ASIANPAINT.NS", "AXISBANK.NS",
         "BAJAJ-AUTO.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS", "BPCL.NS", "BHARTIARTL.NS",
         "BRITANNIA.NS", "CIPLA.NS", "COALINDIA.NS", "DRREDDY.NS", "EICHERMOT.NS",
@@ -185,33 +181,41 @@ MARKET_SECTORS = {
     ]
 }
 
-# Sidebar Parameters
+# साइडबार कंट्रोल्स
 with st.sidebar:
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
         
-    st.markdown("## 🌈 *कंट्रोल सेंटर*")
+    st.markdown("## 🌈 कंट्रोल सेंटर")
     selected_market = st.selectbox("🎯 इंडेक्स / कमॉडिटी निवडा:", list(MARKET_SECTORS.keys()))
     selected_stocks = MARKET_SECTORS[selected_market]
 
     st.markdown('<span class="yellow-glow-label">⏱️ Timeframe</span>', unsafe_allow_html=True)
-    timeframe = st.select_slider("Timeframe Selector", options=["1m", "5m", "15m", "1h", "1d"], value="15m", label_visibility="collapsed")
+    timeframe = st.select_slider("Timeframe निवडा", options=["1m", "5m", "15m", "1h", "1d"], value="15m", label_visibility="collapsed")
 
     st.markdown('<span class="yellow-glow-label">📈 EMA Indicators</span>', unsafe_allow_html=True)
-    selected_emas = st.multiselect("EMA Selector", [9, 21, 50, 200], default=[9, 21, 50, 200], label_visibility="collapsed")
+    selected_emas = st.multiselect("EMA निवडा", [9, 21, 50, 200], default=[9, 21, 50, 200], label_visibility="collapsed")
 
     st.markdown('<span class="yellow-glow-label">🎯 Support & Resistance</span>', unsafe_allow_html=True)
     check_sr = st.checkbox("Support & Resistance लेव्हल्स दाखवा", value=True)
 
     st.markdown("---")
     st.markdown("### ✈️ Telegram बॉट सेटिंग")
-    tg_token = st.text_input(
-    "Bot Token",
-    value="8799046332:AAHzWmvR1ZWJ-7ARzWgybFu-6Ykl7Trdt2k",
-    type="password",
-)
-tg_chat_id = st.text_input("Chat ID", value="5055029691")
-# ---- CENTER HEADER: PHOTO FIRST, HULGUNDE ON TOP, MARKET ANALYSER UNDERNEATH ----
+    tg_token = st.text_input("Bot Token", value=os.getenv("TG_BOT_TOKEN", ""), type="password")
+    tg_chat_id = st.text_input("Chat ID", value=os.getenv("TG_CHAT_ID", ""))
+    send_tg_alerts = st.checkbox("सिग्नल्स Telegram वर पाठवा", value=False)
+
+def send_telegram_message(token, chat_id, text):
+    if not token or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, json=payload, timeout=5)
+    except Exception:
+        pass
+
+# ---- हेडर ब्रँडिंग ----
 h_col1, h_col2, h_col3 = st.columns([1, 2.2, 1])
 with h_col2:
     if os.path.exists("logo.png"):
@@ -235,7 +239,7 @@ st.markdown("""
 
 st.markdown(f'<div class="neon-subtitle-center">🚀 लाईव्ह मल्टि-ॲसेट ॲनालिसिस • <b>{selected_market}</b> • Timeframe: <b>{timeframe}</b></div>', unsafe_allow_html=True)
 
-# 4 Stat Metric Cards
+# ४ मेट्रिक कार्ड्स
 c1, c2, c3, c4 = st.columns(4)
 c1.markdown(f'<div class="card-pink"><div class="val-pink">{len(selected_stocks)}</div><div class="card-lbl">एकूण शेअर्स / कमॉडिटी</div></div>', unsafe_allow_html=True)
 c2.markdown(f'<div class="card-yellow"><div class="val-yellow">{timeframe}</div><div class="card-lbl">Timeframe</div></div>', unsafe_allow_html=True)
@@ -244,7 +248,8 @@ c4.markdown('<div class="card-green"><div class="val-green">24/7 LIVE</div><div 
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["⚡ थेट ब्रेकआऊट सिग्नल्स (Live Signals)", "🕯️ मल्टिकलर निऑन चार्ट"])
+# टॅब्सची पुनर्रचना (Option Chain टॅब जोडला)
+tab1, tab2, tab3 = st.tabs(["⚡ थेट ब्रेकआऊट सिग्नल्स (Live Signals)", "🕯️ मल्टिकलर निऑन चार्ट", "🎯 Nifty 50 Option Chain"])
 
 period_map = {"1m": "5d", "5m": "10d", "15m": "30d", "1h": "60d", "1d": "1y"}
 
@@ -299,9 +304,9 @@ with tab1:
                     signals.append("⚠️ SUPPORT BREAKDOWN")
             
             if signals:
-                clean_name = sym.replace(".NS", "").replace(".BO", "").replace("CL=F", "CRUDE OIL").replace("GC=F", "GOLD")
+                clean_name = sym.replace(".NS", "").replace(".BO", "").replace("CL=F", "CRUDE OIL").replace("GC=F", "GOLD").replace("^NSEI", "NIFTY 50 INDEX").replace("^NSEBANK", "BANK NIFTY INDEX")
                 results.append({
-                    "Stock / Commodity": clean_name,
+                    "Stock / Index": clean_name,
                     "CMP (₹)": f"₹{c_close:.2f}",
                     "Technical Signals": "  |  ".join(signals),
                     "Support (₹)": f"₹{sup_lvl:.2f}",
@@ -311,8 +316,15 @@ with tab1:
         bar.empty()
         if results:
             res_df = pd.DataFrame(results)
-            st.success(f"🎉 एकूण {len(results)} शेअर्स/कमॉडिटीमध्ये सिग्नल्स मिळाले!")
+            st.success(f"🎉 एकूण {len(results)} सिग्नल्स मिळाले!")
             st.dataframe(res_df, use_container_width=True, hide_index=True)
+
+            if send_tg_alerts and tg_token and tg_chat_id:
+                msg = f"⚡ मार्केट सिग्नल्स ({selected_market} - {timeframe})\n\n"
+                for item in results:
+                    msg += f"• {item['Stock / Index']}: {item['CMP (₹)']}\n  Signal: {item['Technical Signals']}\n\n"
+                send_telegram_message(tg_token, tg_chat_id, msg)
+                st.info("📨 Telegram वर सिग्नल्स पाठवले गेले आहेत!")
         else:
             st.info("या टाइमफ्रेमवर सध्या कोणताही नवीन सिग्नल उपलब्ध नाही.")
 
@@ -365,3 +377,32 @@ with tab2:
             margin=dict(l=10, r=10, t=30, b=10)
         )
         st.plotly_chart(fig, use_container_width=True)
+
+with tab3:
+    st.markdown("### ⚡ निफ्टी ५० लाईव्ह ऑप्शन डेटा (Option Chain)")
+    try:
+        nifty_ticker = yf.Ticker("^NSEI")
+        expiries = nifty_ticker.options
+        if expiries:
+            selected_exp = st.selectbox("📅 Expiry Date निवडा:", expiries)
+            chain = nifty_ticker.option_chain(selected_exp)
+            
+            col_call, col_put = st.columns(2)
+            
+            with col_call:
+                st.markdown("<h4 style='color: #00FF88;'>🟢 Call Options (CE)</h4>", unsafe_allow_html=True)
+                calls_df = chain.calls[['strike', 'lastPrice', 'change', 'volume', 'openInterest']].rename(
+                    columns={'strike': 'Strike', 'lastPrice': 'LTP', 'change': 'Change', 'volume': 'Vol', 'openInterest': 'OI'}
+                )
+                st.dataframe(calls_df, use_container_width=True, hide_index=True)
+                
+            with col_put:
+                st.markdown("<h4 style='color: #FF007A;'>🔴 Put Options (PE)</h4>", unsafe_allow_html=True)
+                puts_df = chain.puts[['strike', 'lastPrice', 'change', 'volume', 'openInterest']].rename(
+                    columns={'strike': 'Strike', 'lastPrice': 'LTP', 'change': 'Change', 'volume': 'Vol', 'openInterest': 'OI'}
+                )
+                st.dataframe(puts_df, use_container_width=True, hide_index=True)
+        else:
+            st.warning("सध्या ऑप्शन एक्सपायरी डेटा उपलब्ध नाही.")
+    except Exception as e:
+        st.error(f"ऑप्शन डेटा लोड करताना अडचण आली: {e}")
