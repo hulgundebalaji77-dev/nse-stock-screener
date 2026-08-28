@@ -119,23 +119,6 @@ st.markdown(
     .val-yellow { font-size: 1.8rem; font-weight: 800; color: #FFE600; text-shadow: 0 0 12px rgba(255, 230, 0, 0.6); }
     .val-green { font-size: 1.8rem; font-weight: 800; color: #00FF88; }
     .card-lbl { color: #8b949e; font-size: 0.8rem; text-transform: uppercase; font-weight: 600; margin-top: 4px; }
-
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #FF007A 0%, #9D00FF 50%, #00F0FF 100%);
-        color: #ffffff;
-        font-weight: 800;
-        font-size: 1.05rem;
-        border-radius: 10px;
-        border: none;
-        padding: 0.7rem 2.2rem;
-        box-shadow: 0 0 20px rgba(255, 0, 122, 0.45);
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:first-child:hover {
-        transform: translateY(-2px) scale(1.01);
-        box-shadow: 0 0 30px rgba(0, 240, 255, 0.7);
-        color: #ffffff;
-    }
 </style>
 """,
     unsafe_allow_html=True,
@@ -256,6 +239,7 @@ c4.markdown('<div class="card-green"><div class="val-green">24/7 LIVE</div><div 
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# टॅब्सची मांडणी
 tab1, tab2, tab3 = st.tabs(["⚡ थेट ब्रेकआऊट सिग्नल्स (Live Signals)", "🕯️ मल्टिकलर निऑन चार्ट", "🎯 Nifty 50 Option Chain"])
 
 period_map = {"1m": "5d", "5m": "10d", "15m": "30d", "1h": "60d", "1d": "1y"}
@@ -279,61 +263,59 @@ def fetch_and_calculate(symbol, tf):
         return None
 
 with tab1:
-    if st.button("🔥 आता त्वरित स्कॅन करा (Instant Scan)"):
-        results = []
-        bar = st.progress(0)
+    st.markdown("### ⚡ ऑटोमॅटिक मार्केट स्कॅनर चालू आहे...")
+    results = []
+    
+    for idx, sym in enumerate(selected_stocks):
+        df = fetch_and_calculate(sym, timeframe)
+        if df is None or len(df) < 2:
+            continue
         
-        for idx, sym in enumerate(selected_stocks):
-            bar.progress((idx + 1) / len(selected_stocks))
-            df = fetch_and_calculate(sym, timeframe)
-            if df is None or len(df) < 2:
-                continue
-            
-            c_close = float(df['Close'].iloc[-1])
-            p_close = float(df['Close'].iloc[-2])
-            res_lvl = float(df['Resistance'].iloc[-2])
-            sup_lvl = float(df['Support'].iloc[-2])
-            
-            signals = []
-            for ema in selected_emas:
-                if f'EMA_{ema}' in df.columns:
-                    p_ema = float(df[f'EMA_{ema}'].iloc[-2])
-                    c_ema = float(df[f'EMA_{ema}'].iloc[-1])
-                    if p_close <= p_ema and c_close > c_ema:
-                        signals.append(f"🟢 BUY (Above {ema} EMA)")
-                    elif p_close >= p_ema and c_close < c_ema:
-                        signals.append(f"🔴 SELL (Below {ema} EMA)")
-            
-            if check_sr:
-                if c_close > res_lvl and p_close <= res_lvl:
-                    signals.append("🚀 RESISTANCE BREAKOUT")
-                elif c_close < sup_lvl and p_close >= sup_lvl:
-                    signals.append("⚠️ SUPPORT BREAKDOWN")
-            
-            if signals:
-                clean_name = sym.replace(".NS", "").replace(".BO", "").replace("CL=F", "CRUDE OIL").replace("GC=F", "GOLD").replace("^NSEI", "NIFTY 50 INDEX").replace("^NSEBANK", "BANK NIFTY INDEX")
-                results.append({
-                    "Stock / Index": clean_name,
-                    "CMP (₹)": f"₹{c_close:.2f}",
-                    "Technical Signals": "  |  ".join(signals),
-                    "Support (₹)": f"₹{sup_lvl:.2f}",
-                    "Resistance (₹)": f"₹{res_lvl:.2f}"
-                })
+        c_close = float(df['Close'].iloc[-1])
+        p_close = float(df['Close'].iloc[-2])
+        res_lvl = float(df['Resistance'].iloc[-2])
+        sup_lvl = float(df['Support'].iloc[-2])
         
-        bar.empty()
-        if results:
-            res_df = pd.DataFrame(results)
-            st.success(f"🎉 एकूण {len(results)} सिग्नल्स मिळाले!")
-            st.dataframe(res_df, use_container_width=True, hide_index=True)
+        signals = []
+        for ema in selected_emas:
+            if f'EMA_{ema}' in df.columns:
+                p_ema = float(df[f'EMA_{ema}'].iloc[-2])
+                c_ema = float(df[f'EMA_{ema}'].iloc[-1])
+                if p_close <= p_ema and c_close > c_ema:
+                    signals.append(f"🟢 BUY (Above {ema} EMA)")
+                elif p_close >= p_ema and c_close < c_ema:
+                    signals.append(f"🔴 SELL (Below {ema} EMA)")
+        
+        if check_sr:
+            if c_close > res_lvl and p_close <= res_lvl:
+                signals.append("🚀 RESISTANCE BREAKOUT")
+            elif c_close < sup_lvl and p_close >= sup_lvl:
+                signals.append("⚠️ SUPPORT BREAKDOWN")
+        
+        if signals:
+            clean_name = sym.replace(".NS", "").replace(".BO", "").replace("CL=F", "CRUDE OIL").replace("GC=F", "GOLD").replace("^NSEI", "NIFTY 50 INDEX").replace("^NSEBANK", "BANK NIFTY INDEX")
+            results.append({
+                "Stock / Index": clean_name,
+                "CMP (₹)": f"₹{c_close:.2f}",
+                "Technical Signals": "  |  ".join(signals),
+                "Support (₹)": f"₹{sup_lvl:.2f}",
+                "Resistance (₹)": f"₹{res_lvl:.2f}"
+            })
+    
+    if results:
+        res_df = pd.DataFrame(results)
+        st.success(f"🎉 एकूण {len(results)} सिग्नल्स मिळाले!")
+        st.dataframe(res_df, use_container_width=True, hide_index=True)
 
-            if send_tg_alerts and tg_token and tg_chat_id:
-                msg = f"⚡ मार्केट सिग्नल्स ({selected_market} - {timeframe})\n\n"
-                for item in results:
-                    msg += f"• {item['Stock / Index']}: {item['CMP (₹)']}\n  Signal: {item['Technical Signals']}\n\n"
-                send_telegram_message(tg_token, tg_chat_id, msg)
-                st.info("📨 Telegram वर सिग्नल्स पाठवले गेले आहेत!")
-        else:
-            st.info("या टाइमफ्रेमवर सध्या कोणताही नवीन सिग्नल उपलब्ध नाही.")
+        # Telegram अलर्ट थेट पाठवला जाईल
+        if send_tg_alerts and tg_token and tg_chat_id:
+            msg = f"⚡ मार्केट सिग्नल्स ({selected_market} - {timeframe})\n\n"
+            for item in results:
+                msg += f"• {item['Stock / Index']}: {item['CMP (₹)']}\n  Signal: {item['Technical Signals']}\n\n"
+            send_telegram_message(tg_token, tg_chat_id, msg)
+            st.info("📨 Telegram वर सिग्नल्स पाठवले गेले आहेत!")
+    else:
+        st.info("या टाइमफ्रेमवर सध्या कोणताही नवीन ब्रेकआऊट सिग्नल उपलब्ध नाही.")
 
 with tab2:
     chart_sym = st.selectbox("📊 विश्लेषणासाठी निवडा:", selected_stocks)
